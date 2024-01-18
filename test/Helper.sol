@@ -17,6 +17,8 @@ contract Helper is Test {
     uint256 public constant INITIAL_REWARD_FEE = 1_000;
     address public constant USDC = 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
     address internal constant COMP = 0x9e1028F5F1D5eDE59748FFceE5532509976840E0;
+    string public constant NAME = "Brrito USDC";
+    string public constant SYMBOL = "brrUSDC";
     address public immutable admin = address(this);
     address public immutable vaultImplementation = address(new BrrUSDC());
     BrrUSDC public immutable vault;
