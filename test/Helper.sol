@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
+import {ERC20} from "solady/tokens/ERC20.sol";
 import {ERC1967Factory} from "solady/utils/ERC1967Factory.sol";
 import {Initializable} from "solady/utils/Initializable.sol";
 import {ICometRewards} from "src/interfaces/ICometRewards.sol";
@@ -16,9 +17,10 @@ contract Helper is Test {
     address public constant ROUTER = 0xafaE5a94e6F1C79D40F5460c47589BAD5c123B9c;
     uint256 public constant INITIAL_REWARD_FEE = 1_000;
     address public constant USDC = 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
-    address internal constant COMP = 0x9e1028F5F1D5eDE59748FFceE5532509976840E0;
+    address public constant COMP = 0x9e1028F5F1D5eDE59748FFceE5532509976840E0;
     string public constant NAME = "Brrito USDC";
     string public constant SYMBOL = "brrUSDC";
+    uint256 public constant COMET_ROUNDING_ERROR_MARGIN = 2;
     address public immutable admin = address(this);
     address public immutable vaultImplementation = address(new BrrUSDC());
     BrrUSDC public immutable vault;
@@ -38,5 +40,8 @@ contract Helper is Test {
                 )
             )
         );
+
+        deal(USDC, address(this), 10_000e6);
+        ERC20(USDC).approve(address(vault), type(uint256).max);
     }
 }
