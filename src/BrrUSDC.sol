@@ -132,6 +132,101 @@ contract BrrUSDC is UUPSUpgradeable, Initializable, ERC4626 {
         return _USDC_DECIMALS;
     }
 
+    /**
+     * @notice Returns the amount of shares that the Vault will exchange for the amount of assets provided,
+     *         in an ideal scenario where all conditions are met.
+     * @param  assets       uint256  Amount of assets to convert to shares.
+     * @param  totalSupply  uint256  Amount of shares in the Vault prior to minting `shares`.
+     * @param  totalAssets  uint256  Amount of assets in the Vault prior to transferring in `assets`.
+     * @return              uint256  Amount of shares minted in exchange for `assets`.
+     */
+    function convertToShares(
+        uint256 assets,
+        uint256 totalSupply,
+        uint256 totalAssets
+    ) public pure returns (uint256) {
+        // Will not realistically overflow since the `totalSupply` and `totalAssets` should never
+        // exceed the amount of cUSDC that is deposited or received from compounding rewards.
+        unchecked {
+            return assets.fullMulDiv(totalSupply + 1, totalAssets + 1);
+        }
+    }
+
+    /**
+     * @notice Mints `shares` and emits the `Deposit` event.
+     * @param  by      address  Address that minted the shares.
+     * @param  to      address  Address to mint shares to.
+     * @param  assets  uint256  Amount of assets deposited.
+     * @param  shares  uint256  Amount of shares minted.
+     */
+    function _deposit(
+        address by,
+        address to,
+        uint256 assets,
+        uint256 shares
+    ) internal override {
+        _mint(to, shares);
+
+        emit Deposit(by, to, assets, shares);
+    }
+
+    /**
+     * @notice Mints `shares` Vault shares to `to` by depositing `assets` received from supplying USDC.
+     * @param  amount     uint256  Amount of USDC to deposit.
+     * @param  to         address  Address to mint shares to.
+     * @param  minShares  uint256  The minimum amount of shares that must be minted.
+     * @return shares     uint256  Amount of shares minted.
+     */
+    function deposit(
+        uint256 amount,
+        address to,
+        uint256 minShares
+    ) external returns (uint256 shares) {
+        _USDC.safeTransferFrom(msg.sender, address(this), amount);
+
+        uint256 totalAssetsBefore = totalAssets();
+
+        IComet(_COMET).supply(_USDC, amount);
+
+        uint256 assets = totalAssets() - totalAssetsBefore;
+        shares = convertToShares(assets, totalSupply(), totalAssetsBefore);
+
+        if (shares < minShares) revert InsufficientSharesMinted();
+
+        _deposit(msg.sender, to, assets, shares);
+    }
+
+    /**
+     * @notice Mints `shares` Vault shares to `to` by depositing exactly `assets` of underlying tokens.
+     * @dev    Comet rounds down transfer amounts, which will result in a 1+ wei discrepancy between `assets`
+     *         and the actual amount received by the vault. To err on the side of safety, we are using the
+     *         actual amount of assets received by the vault when calculating the amount of shares to mint.
+     * @param  assets  uint256  Amount of assets to deposit.
+     * @param  to      address  Address to mint shares to.
+     * @return shares  uint256  Amount of shares minted.
+     */
+    function deposit(
+        uint256 assets,
+        address to
+    ) public override returns (uint256 shares) {
+        // Prevents `msg.sender` from using `type(uint256).max` for `assets` which is Comet's alias for "entire balance".
+        if (assets > _COMET.balanceOf(msg.sender))
+            revert InsufficientAssetBalance();
+
+        uint256 totalAssetsBefore = totalAssets();
+
+        _COMET.safeTransferFrom(msg.sender, address(this), assets);
+
+        shares = convertToShares(
+            // The difference is the exact amount of cUSDC received, after rounding down.
+            totalAssets() - totalAssetsBefore,
+            totalSupply(),
+            totalAssetsBefore
+        );
+
+        _deposit(msg.sender, to, assets, shares);
+    }
+
     /// @notice Claim rewards and convert them into the vault asset.
     function harvest() public {}
 
