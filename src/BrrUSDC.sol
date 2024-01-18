@@ -22,6 +22,7 @@ contract BrrUSDC is UUPSUpgradeable, Initializable, ERC4626 {
     string private constant _NAME = "Brrito USDC";
     string private constant _SYMBOL = "brrUSDC";
     address private constant _USDC = 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
+    uint8 private constant _USDC_DECIMALS = 6;
     uint256 private constant _FEE_BASE = 10_000;
     address private constant _COMET =
         0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf;
@@ -30,7 +31,7 @@ contract BrrUSDC is UUPSUpgradeable, Initializable, ERC4626 {
 
     ICometRewards public cometRewards;
 
-    // The router used to swap rewards for WETH.
+    // The router used to swap rewards for USDC.
     IRouter public router;
 
     // The default reward fee is 0% and can be increased up to 100% (only for specific use cases).
@@ -89,13 +90,13 @@ contract BrrUSDC is UUPSUpgradeable, Initializable, ERC4626 {
         ICometRewards.RewardConfig memory rewardConfig = cometRewards
             .rewardConfig(_COMET);
 
-        // Enable the router to swap our Comet rewards for WETH.
+        // Enable the router to swap our Comet rewards for USDC.
         rewardConfig.token.safeApproveWithRetry(
             address(router),
             type(uint256).max
         );
 
-        // Enable Comet to transfer our WETH in exchange for cUSDC.
+        // Enable Comet to transfer our USDC in exchange for cUSDC.
         _USDC.safeApproveWithRetry(_COMET, type(uint256).max);
     }
 
@@ -121,6 +122,14 @@ contract BrrUSDC is UUPSUpgradeable, Initializable, ERC4626 {
      */
     function asset() public pure override returns (address) {
         return _COMET;
+    }
+
+    /**
+     * @notice Underlying ERC20 token asset decimals.
+     * @return uint8  Asset decimals.
+     */
+    function _underlyingDecimals() internal pure override returns (uint8) {
+        return _USDC_DECIMALS;
     }
 
     /// @notice Claim rewards and convert them into the vault asset.
@@ -162,7 +171,7 @@ contract BrrUSDC is UUPSUpgradeable, Initializable, ERC4626 {
 
         router = IRouter(_router);
 
-        // Enable the new router to swap reward tokens into more WETH.
+        // Enable the new router to swap reward tokens into more USDC.
         rewardConfig.token.safeApproveWithRetry(_router, type(uint256).max);
 
         emit SetRouter(_router);
