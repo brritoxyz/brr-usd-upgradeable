@@ -12,15 +12,15 @@ import {IComet} from "src/interfaces/IComet.sol";
 import {ICometRewards} from "src/interfaces/ICometRewards.sol";
 import {IRouter} from "src/interfaces/IRouter.sol";
 
-/// @title Brrito brrUSDC.
+/// @title Brrito brrUSD.
 /// @author kp (kphed.eth).
-/// @notice A yield-bearing USDC derivative built on Compound III.
-contract BrrUSDC is UUPSUpgradeable, Initializable, ERC4626 {
+/// @notice A yield-bearing USD derivative built on Compound III.
+contract BrrUSD is UUPSUpgradeable, Initializable, ERC4626 {
     using SafeTransferLib for address;
     using FixedPointMathLib for uint256;
 
-    string private constant _NAME = "Brrito USDC";
-    string private constant _SYMBOL = "brrUSDC";
+    string private constant _NAME = "Brrito USD";
+    string private constant _SYMBOL = "brrUSD";
     address private constant _USDC = 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
     uint8 private constant _USDC_DECIMALS = 6;
     uint256 private constant _FEE_BASE = 10_000;

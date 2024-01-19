@@ -6,7 +6,7 @@ import {ERC20} from "solady/tokens/ERC20.sol";
 import {ERC1967Factory} from "solady/utils/ERC1967Factory.sol";
 import {Initializable} from "solady/utils/Initializable.sol";
 import {ICometRewards} from "src/interfaces/ICometRewards.sol";
-import {BrrUSDC} from "src/BrrUSDC.sol";
+import {BrrUSD} from "src/BrrUSD.sol";
 
 contract Helper is Test {
     ERC1967Factory public constant ERC1967_FACTORY =
@@ -18,20 +18,20 @@ contract Helper is Test {
     uint256 public constant INITIAL_REWARD_FEE = 1_000;
     address public constant USDC = 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
     address public constant COMP = 0x9e1028F5F1D5eDE59748FFceE5532509976840E0;
-    string public constant NAME = "Brrito USDC";
-    string public constant SYMBOL = "brrUSDC";
+    string public constant NAME = "Brrito USD";
+    string public constant SYMBOL = "brrUSD";
     uint256 public constant COMET_ROUNDING_ERROR_MARGIN = 2;
     address public immutable admin = address(this);
-    address public immutable vaultImplementation = address(new BrrUSDC());
-    BrrUSDC public immutable vault;
+    address public immutable vaultImplementation = address(new BrrUSD());
+    BrrUSD public immutable vault;
 
     constructor() {
-        vault = BrrUSDC(
+        vault = BrrUSD(
             ERC1967_FACTORY.deployAndCall(
                 vaultImplementation,
                 admin,
                 abi.encodeWithSelector(
-                    BrrUSDC.initialize.selector,
+                    BrrUSD.initialize.selector,
                     COMET_REWARDS,
                     ROUTER,
                     INITIAL_REWARD_FEE,

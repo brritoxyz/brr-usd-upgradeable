@@ -5,9 +5,9 @@ import {ERC20} from "solady/tokens/ERC20.sol";
 import {ERC4626} from "solady/tokens/ERC4626.sol";
 import {Initializable} from "solady/utils/Initializable.sol";
 import {Helper} from "test/Helper.sol";
-import {BrrUSDC} from "src/BrrUSDC.sol";
+import {BrrUSD} from "src/BrrUSD.sol";
 
-contract BrrUSDCTest is Helper {
+contract BrrUSDTest is Helper {
     /*//////////////////////////////////////////////////////////////
                              initialize
     //////////////////////////////////////////////////////////////*/
@@ -25,7 +25,7 @@ contract BrrUSDCTest is Helper {
     }
 
     function testInitialize() external {
-        BrrUSDC uninitializedVault = BrrUSDC(
+        BrrUSD uninitializedVault = BrrUSD(
             // Deploys a new proxy but does not initialize.
             ERC1967_FACTORY.deploy(vaultImplementation, admin)
         );
@@ -99,7 +99,7 @@ contract BrrUSDCTest is Helper {
         address to = address(this);
         uint256 minShares = vault.convertToShares(amount) + 1;
 
-        vm.expectRevert(BrrUSDC.InsufficientSharesMinted.selector);
+        vm.expectRevert(BrrUSD.InsufficientSharesMinted.selector);
 
         vault.deposit(amount, to, minShares);
     }
