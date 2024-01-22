@@ -5,10 +5,13 @@ import "forge-std/Test.sol";
 import {ERC20} from "solady/tokens/ERC20.sol";
 import {ERC1967Factory} from "solady/utils/ERC1967Factory.sol";
 import {Initializable} from "solady/utils/Initializable.sol";
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {ICometRewards} from "src/interfaces/ICometRewards.sol";
 import {BrrUSD} from "src/BrrUSD.sol";
 
 contract Helper is Test {
+    using SafeTransferLib for address;
+
     ERC1967Factory public constant ERC1967_FACTORY =
         ERC1967Factory(0x0000000000006396FF2a80c067f99B3d2Ab4Df24);
     address public constant COMET = 0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf;
@@ -42,6 +45,8 @@ contract Helper is Test {
         );
 
         deal(USDC, address(this), 10_000e6);
-        ERC20(USDC).approve(address(vault), type(uint256).max);
+        USDC.safeApprove(address(vault), type(uint256).max);
+        USDC.safeApprove(COMET, type(uint256).max);
+        COMET.safeApprove(address(vault), type(uint256).max);
     }
 }
