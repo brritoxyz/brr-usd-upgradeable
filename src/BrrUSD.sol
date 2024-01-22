@@ -21,8 +21,9 @@ contract BrrUSD is UUPSUpgradeable, Initializable, ERC4626 {
 
     string private constant _NAME = "Brrito USD";
     string private constant _SYMBOL = "brrUSD";
-    address private constant _USDC = 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
-    uint8 private constant _USDC_DECIMALS = 6;
+    address private constant _ASSET =
+        0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
+    uint8 private constant _ASSET_DECIMALS = 6;
     uint256 private constant _FEE_BASE = 10_000;
     address private constant _COMET =
         0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf;
@@ -97,7 +98,7 @@ contract BrrUSD is UUPSUpgradeable, Initializable, ERC4626 {
         );
 
         // Enable Comet to transfer our USDC in exchange for cUSDC.
-        _USDC.safeApproveWithRetry(_COMET, type(uint256).max);
+        _ASSET.safeApproveWithRetry(_COMET, type(uint256).max);
     }
 
     /**
@@ -129,7 +130,7 @@ contract BrrUSD is UUPSUpgradeable, Initializable, ERC4626 {
      * @return uint8  Asset decimals.
      */
     function _underlyingDecimals() internal pure override returns (uint8) {
-        return _USDC_DECIMALS;
+        return _ASSET_DECIMALS;
     }
 
     /**
@@ -182,11 +183,11 @@ contract BrrUSD is UUPSUpgradeable, Initializable, ERC4626 {
         address to,
         uint256 minShares
     ) external returns (uint256 shares) {
-        _USDC.safeTransferFrom(msg.sender, address(this), amount);
+        _ASSET.safeTransferFrom(msg.sender, address(this), amount);
 
         uint256 totalAssetsBefore = totalAssets();
 
-        IComet(_COMET).supply(_USDC, amount);
+        IComet(_COMET).supply(_ASSET, amount);
 
         uint256 assets = totalAssets() - totalAssetsBefore;
         shares = convertToShares(assets, totalSupply(), totalAssetsBefore);

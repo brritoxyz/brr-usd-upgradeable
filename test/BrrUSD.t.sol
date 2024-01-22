@@ -29,8 +29,8 @@ contract BrrUSDTest is Helper {
     function _getCUSDbC(uint256 amount) internal returns (uint256 balance) {
         balance = COMET.balanceOf(address(this));
 
-        deal(USDC, address(this), amount);
-        IComet(COMET).supply(USDC, amount);
+        deal(ASSET, address(this), amount);
+        IComet(COMET).supply(ASSET, amount);
 
         balance = COMET.balanceOf(address(this)) - balance;
     }
@@ -84,7 +84,7 @@ contract BrrUSDTest is Helper {
         // Comet must have max allowance for the purposes of supplying WETH for cWETHv3.
         assertEq(
             type(uint256).max,
-            ERC20(USDC).allowance(address(vault), COMET)
+            ERC20(ASSET).allowance(address(vault), COMET)
         );
 
         assertEq(
@@ -118,10 +118,10 @@ contract BrrUSDTest is Helper {
     }
 
     /*//////////////////////////////////////////////////////////////
-                             depositUSDC
+                             deposit (direct)
     //////////////////////////////////////////////////////////////*/
 
-    function testCannotDepositUSDCInsufficientSharesMinted() external {
+    function testCannotDepositDirectInsufficientSharesMinted() external {
         uint256 amount = 0;
         address to = address(this);
         uint256 minShares = vault.convertToShares(amount) + 1;
@@ -131,7 +131,7 @@ contract BrrUSDTest is Helper {
         vault.deposit(amount, to, minShares);
     }
 
-    function testDepositUSDC() external {
+    function testDepositDirect() external {
         uint256 amount = 1e6;
         address to = address(this);
         uint256 minShares = vault.convertToShares(
@@ -160,7 +160,7 @@ contract BrrUSDTest is Helper {
         assertLe(totalSupplyAfter, totalAssetsAfter);
     }
 
-    function testDepositUSDCFuzz(
+    function testDepositDirectFuzz(
         address msgSender,
         uint80 amount,
         address to
@@ -179,8 +179,8 @@ contract BrrUSDTest is Helper {
 
         vm.startPrank(msgSender);
 
-        deal(USDC, msgSender, amount);
-        ERC20(USDC).approve(address(vault), type(uint256).max);
+        deal(ASSET, msgSender, amount);
+        ERC20(ASSET).approve(address(vault), type(uint256).max);
 
         vm.expectEmit(true, true, true, false, address(vault));
 

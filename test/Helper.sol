@@ -19,7 +19,7 @@ contract Helper is Test {
         0x123964802e6ABabBE1Bc9547D72Ef1B69B00A6b1;
     address public constant ROUTER = 0xe88483B5901FA3537355C4324ccF92a8d4155260;
     uint256 public constant INITIAL_REWARD_FEE = 1_000;
-    address public constant USDC = 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
+    address public constant ASSET = 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
     address public constant COMP = 0x9e1028F5F1D5eDE59748FFceE5532509976840E0;
     string public constant NAME = "Brrito USD";
     string public constant SYMBOL = "brrUSD";
@@ -44,9 +44,9 @@ contract Helper is Test {
             )
         );
 
-        deal(USDC, address(this), 10_000e6);
-        USDC.safeApprove(address(vault), type(uint256).max);
-        USDC.safeApprove(COMET, type(uint256).max);
+        deal(ASSET, address(this), 10_000e6);
+        ASSET.safeApprove(address(vault), type(uint256).max);
+        ASSET.safeApprove(COMET, type(uint256).max);
         COMET.safeApprove(address(vault), type(uint256).max);
     }
 }
