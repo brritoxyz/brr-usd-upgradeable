@@ -229,7 +229,59 @@ contract BrrUSD is UUPSUpgradeable, Initializable, ERC4626 {
     }
 
     /// @notice Claim rewards and convert them into the vault asset.
-    function harvest() public {}
+    function harvest() public {
+        cometRewards.claim(_COMET, address(this), true);
+
+        ICometRewards.RewardConfig memory rewardConfig = cometRewards
+            .rewardConfig(_COMET);
+        uint256 rewards = rewardConfig.token.balanceOf(address(this));
+
+        if (rewards == 0) return;
+
+        // Fetching the quote onchain means that we're subject to front/back-running but the
+        // assumption is that we will harvest so frequently that the rewards won't justify the effort.
+        (uint256 index, uint256 quote) = router.getSwapOutput(
+            keccak256(abi.encodePacked(rewardConfig.token, _ASSET)),
+            rewards
+        );
+
+        // `swap` returns the entire WETH amount received from the swap.
+        uint256 supplyAssets = router.swap(
+            rewardConfig.token,
+            _ASSET,
+            rewards,
+            quote,
+            index,
+            // Receives half of the swap fees (the other half remains in the router contract for the protocol).
+            feeDistributor
+        );
+
+        // Calculate the reward fees, which may be taken out from the output amount before supplying to Comet.
+        uint256 fees = supplyAssets.mulDiv(rewardFee, _FEE_BASE);
+
+        // Only distribute rewards if there's enough to split between the protocol fee receiver and the fee distributor.
+        if (fees > 1) {
+            unchecked {
+                // `fees` is a fraction of the swap output so we can safely subtract it without underflowing.
+                supplyAssets -= fees;
+
+                uint256 protocolFeeReceiverShare = fees / 2;
+
+                _ASSET.safeTransfer(
+                    protocolFeeReceiver,
+                    protocolFeeReceiverShare
+                );
+                _ASSET.safeTransfer(
+                    feeDistributor,
+                    fees - protocolFeeReceiverShare
+                );
+            }
+        }
+
+        emit Harvest(rewardConfig.token, rewards, supplyAssets, fees);
+
+        IComet(_COMET).supply(_ASSET, supplyAssets);
+    }
 
     /*//////////////////////////////////////////////////////////////
                         PRIVILEGED SETTERS
