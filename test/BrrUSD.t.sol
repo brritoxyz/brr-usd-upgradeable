@@ -81,7 +81,7 @@ contract BrrUSDTest is Helper {
         assertEq(admin, uninitializedVault.protocolFeeReceiver());
         assertEq(admin, uninitializedVault.feeDistributor());
 
-        // Comet must have max allowance for the purposes of supplying WETH for cWETHv3.
+        // Comet must have max allowance for the purposes of supplying USDC for the cToken.
         assertEq(
             type(uint256).max,
             ERC20(ASSET).allowance(address(vault), COMET)

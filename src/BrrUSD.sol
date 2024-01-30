@@ -245,7 +245,7 @@ contract BrrUSD is UUPSUpgradeable, Initializable, ERC4626 {
             rewards
         );
 
-        // `swap` returns the entire WETH amount received from the swap.
+        // `swap` returns the entire USD amount received from the swap.
         uint256 supplyAssets = router.swap(
             rewardConfig.token,
             _ASSET,
