@@ -26,6 +26,7 @@ contract Helper is Test {
     uint256 internal constant FEE_BASE = 10_000;
     uint256 internal constant SWAP_FEE_DEDUCTED = 9_998;
     uint256 public constant COMET_ROUNDING_ERROR_MARGIN = 2;
+    uint8 public constant ASSET_DECIMALS = 6;
     address public immutable admin = address(this);
     address public immutable vaultImplementation = address(new BrrUSD());
     BrrUSD public immutable vault;
