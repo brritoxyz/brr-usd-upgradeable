@@ -4,14 +4,14 @@ out/
 optimized-out/
 
 # Ignores development broadcast logs
-!broadcast/BrrETH.s.sol/
-broadcast/BrrETH.s.sol/dry-run
-broadcast/BrrETH.s.sol/8453/*
-!broadcast/BrrETH.s.sol/8453/run-latest.json
-!broadcast/BrrETHRedeemHelper.s.sol/
-broadcast/BrrETHRedeemHelper.s.sol/dry-run
-broadcast/BrrETHRedeemHelper.s.sol/8453/*
-!broadcast/BrrETHRedeemHelper.s.sol/8453/run-latest.json
+!broadcast/BrrUSD.s.sol/
+broadcast/BrrUSD.s.sol/dry-run
+broadcast/BrrUSD.s.sol/8453/*
+!broadcast/BrrUSD.s.sol/8453/run-latest.json
+!broadcast/BrrUSDRedeemHelper.s.sol/
+broadcast/BrrUSDRedeemHelper.s.sol/dry-run
+broadcast/BrrUSDRedeemHelper.s.sol/8453/*
+!broadcast/BrrUSDRedeemHelper.s.sol/8453/run-latest.json
 
 # Dotenv file
 .env
