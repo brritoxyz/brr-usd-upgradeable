@@ -4,13 +4,16 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import {ERC20} from "solady/tokens/ERC20.sol";
 import {ERC4626} from "solady/tokens/ERC4626.sol";
+import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {Initializable} from "solady/utils/Initializable.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {Helper} from "test/Helper.sol";
 import {BrrUSD} from "src/BrrUSD.sol";
 import {IComet} from "src/interfaces/IComet.sol";
+import {IRouter} from "src/interfaces/IRouter.sol";
 
 contract BrrUSDTest is Helper {
+    using FixedPointMathLib for uint256;
     using SafeTransferLib for address;
 
     address[10] public anvilAccounts = [
@@ -26,13 +29,34 @@ contract BrrUSDTest is Helper {
         address(0xa0Ee7A142d267C1f36714E4a8F75612F20a79720)
     ];
 
-    function _getCUSDbC(uint256 amount) internal returns (uint256 balance) {
+    function _getAsset(uint256 amount) internal returns (uint256 balance) {
         balance = COMET.balanceOf(address(this));
 
         deal(ASSET, address(this), amount);
         IComet(COMET).supply(ASSET, amount);
 
         balance = COMET.balanceOf(address(this)) - balance;
+    }
+
+    function _calculateFees(
+        uint256 amount
+    )
+        internal
+        view
+        returns (
+            uint256 protocolFeeReceiverShare,
+            uint256 feeDistributorShare,
+            uint256 feeDistributorSwapFeeShare
+        )
+    {
+        uint256 rewardFee = vault.rewardFee();
+        uint256 rewardFeeShare = amount.mulDiv(rewardFee, FEE_BASE);
+        uint256 preFeeAmount = amount.mulDiv(FEE_BASE, SWAP_FEE_DEDUCTED);
+        protocolFeeReceiverShare = rewardFeeShare / 2;
+        feeDistributorShare = rewardFeeShare - protocolFeeReceiverShare;
+        feeDistributorSwapFeeShare =
+            (preFeeAmount - preFeeAmount.mulDiv(SWAP_FEE_DEDUCTED, FEE_BASE)) /
+            2;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -234,7 +258,7 @@ contract BrrUSDTest is Helper {
     }
 
     function testDeposit() external {
-        uint256 assets = _getCUSDbC(1e6);
+        uint256 assets = _getAsset(1e6);
         address to = address(this);
         uint256 totalSupplyBefore = vault.totalSupply();
         uint256 totalAssetsBefore = vault.totalAssets();
@@ -265,7 +289,7 @@ contract BrrUSDTest is Helper {
         uint256 totalAssets = 0;
 
         for (uint256 i = 0; i < anvilAccounts.length; ++i) {
-            uint256 asset = _getCUSDbC(baseAsset * (i + 1));
+            uint256 asset = _getAsset(baseAsset * (i + 1));
             uint256 totalSupplyBefore = vault.totalSupply();
             uint256 totalAssetsBefore = vault.totalAssets();
 
@@ -296,7 +320,7 @@ contract BrrUSDTest is Helper {
     }
 
     function testDepositFuzz(uint40 assets, address to) external {
-        assets = uint40(_getCUSDbC(assets));
+        assets = uint40(_getAsset(assets));
         uint256 totalSupplyBefore = vault.totalSupply();
         uint256 totalAssetsBefore = vault.totalAssets();
 
@@ -317,5 +341,148 @@ contract BrrUSDTest is Helper {
         assertEq(shares, totalSupplyAfter - totalSupplyBefore);
         assertEq(shares, vault.balanceOf(to));
         assertLe(totalSupplyAfter, totalAssetsAfter);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                             harvest
+    //////////////////////////////////////////////////////////////*/
+
+    function testHarvest() external {
+        uint256 assets = 1_000e6;
+        uint256 accrualTime = 1 days;
+
+        _getAsset(assets);
+
+        // Reassign `assets` since Comet rounds down 1.
+        assets = COMET.balanceOf(address(this));
+
+        vault.deposit(assets, address(this));
+
+        skip(accrualTime);
+
+        IComet(COMET).accrueAccount(address(vault));
+
+        IComet.UserBasic memory userBasic = IComet(COMET).userBasic(
+            address(vault)
+        );
+        uint256 rewards = userBasic.baseTrackingAccrued * 1e12;
+        (, uint256 quote) = IRouter(ROUTER).getSwapOutput(
+            keccak256(abi.encodePacked(COMP, ASSET)),
+            rewards
+        );
+        (
+            uint256 protocolFeeReceiverShare,
+            uint256 feeDistributorShare,
+            uint256 feeDistributorSwapFeeShare
+        ) = _calculateFees(quote);
+        quote -= protocolFeeReceiverShare + feeDistributorShare;
+        uint256 newAssets = quote - 1;
+        uint256 totalAssets = vault.totalAssets();
+        uint256 totalSupply = vault.totalSupply();
+        uint256 protocolFeeReceiverBalance = ASSET.balanceOf(
+            vault.protocolFeeReceiver()
+        );
+
+        vm.expectEmit(true, true, true, true, address(vault));
+
+        emit BrrUSD.Harvest(
+            COMP,
+            rewards,
+            quote,
+            protocolFeeReceiverShare + feeDistributorShare
+        );
+
+        vault.harvest();
+
+        assertEq(totalAssets + newAssets, vault.totalAssets());
+        assertEq(totalSupply, vault.totalSupply());
+        assertEq(
+            protocolFeeReceiverBalance +
+                protocolFeeReceiverShare +
+                feeDistributorShare +
+                feeDistributorSwapFeeShare,
+            ASSET.balanceOf(_getVaultProxyAdmin())
+        );
+    }
+
+    function testHarvestFuzz(
+        uint40 assets,
+        uint24 accrualTime,
+        bool setFeeDistributor
+    ) external {
+        vm.assume(assets > 1_000e6 && accrualTime > 100);
+
+        // Randomly set the fee distributor to test proper fee distribution across two different accounts.
+        if (setFeeDistributor) vault.setFeeDistributor(address(0xbeef));
+
+        _getAsset(assets);
+
+        assets = uint40(COMET.balanceOf(address(this)));
+
+        vault.deposit(assets, address(this));
+
+        skip(accrualTime);
+
+        IComet(COMET).accrueAccount(address(vault));
+
+        IComet.UserBasic memory userBasic = IComet(COMET).userBasic(
+            address(vault)
+        );
+        uint256 rewards = uint256(userBasic.baseTrackingAccrued) * 1e12;
+
+        if (rewards == 0) return;
+
+        (, uint256 quote) = IRouter(ROUTER).getSwapOutput(
+            keccak256(abi.encodePacked(COMP, ASSET)),
+            rewards
+        );
+        (
+            uint256 protocolFeeReceiverShare,
+            uint256 feeDistributorShare,
+            uint256 feeDistributorSwapFeeShare
+        ) = _calculateFees(quote);
+        quote -= protocolFeeReceiverShare + feeDistributorShare;
+        uint256 newAssets = quote - 5;
+        uint256 totalAssets = vault.totalAssets();
+        uint256 totalSupply = vault.totalSupply();
+        uint256 protocolFeeReceiverBalance = ASSET.balanceOf(
+            vault.protocolFeeReceiver()
+        );
+        uint256 feeDistributorBalance = ASSET.balanceOf(vault.feeDistributor());
+
+        vm.expectEmit(true, true, true, true, address(vault));
+
+        emit BrrUSD.Harvest(
+            COMP,
+            rewards,
+            quote,
+            protocolFeeReceiverShare + feeDistributorShare
+        );
+
+        vault.harvest();
+
+        assertLe(totalAssets + newAssets, vault.totalAssets());
+        assertEq(totalSupply, vault.totalSupply());
+
+        if (_getVaultProxyAdmin() == vault.feeDistributor()) {
+            assertEq(
+                protocolFeeReceiverBalance +
+                    protocolFeeReceiverShare +
+                    feeDistributorShare +
+                    feeDistributorSwapFeeShare,
+                ASSET.balanceOf(_getVaultProxyAdmin())
+            );
+        } else {
+            assertEq(
+                protocolFeeReceiverBalance + protocolFeeReceiverShare,
+                ASSET.balanceOf(_getVaultProxyAdmin())
+            );
+            assertEq(
+                feeDistributorBalance +
+                    feeDistributorShare +
+                    feeDistributorSwapFeeShare,
+                ASSET.balanceOf(vault.feeDistributor())
+            );
+        }
     }
 }

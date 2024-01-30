@@ -23,6 +23,8 @@ contract Helper is Test {
     address public constant COMP = 0x9e1028F5F1D5eDE59748FFceE5532509976840E0;
     string public constant NAME = "Brrito USD";
     string public constant SYMBOL = "brrUSD";
+    uint256 internal constant FEE_BASE = 10_000;
+    uint256 internal constant SWAP_FEE_DEDUCTED = 9_998;
     uint256 public constant COMET_ROUNDING_ERROR_MARGIN = 2;
     address public immutable admin = address(this);
     address public immutable vaultImplementation = address(new BrrUSD());
@@ -48,5 +50,13 @@ contract Helper is Test {
         ASSET.safeApprove(address(vault), type(uint256).max);
         ASSET.safeApprove(COMET, type(uint256).max);
         COMET.safeApprove(address(vault), type(uint256).max);
+    }
+
+    /**
+     * @notice Convenient helper for getting the vault (ERC1967 proxy) admin.
+     * @return address  Proxy admin.
+     */
+    function _getVaultProxyAdmin() internal view returns (address) {
+        return ERC1967_FACTORY.adminOf(address(vault));
     }
 }
