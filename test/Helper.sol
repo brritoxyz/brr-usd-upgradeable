@@ -7,6 +7,7 @@ import {ERC1967Factory} from "solady/utils/ERC1967Factory.sol";
 import {Initializable} from "solady/utils/Initializable.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {ICometRewards} from "src/interfaces/ICometRewards.sol";
+import {IRouter} from "src/interfaces/IRouter.sol";
 import {BrrUSD} from "src/BrrUSD.sol";
 
 contract Helper is Test {
@@ -24,12 +25,12 @@ contract Helper is Test {
     string public constant NAME = "Brrito USD";
     string public constant SYMBOL = "brrUSD";
     uint256 internal constant FEE_BASE = 10_000;
-    uint256 internal constant SWAP_FEE_DEDUCTED = 9_998;
     uint256 public constant COMET_ROUNDING_ERROR_MARGIN = 2;
     uint8 public constant ASSET_DECIMALS = 6;
     address public immutable admin = address(this);
     address public immutable vaultImplementation = address(new BrrUSD());
     BrrUSD public immutable vault;
+    uint256 public immutable swapFeeDeducted;
 
     constructor() {
         vault = BrrUSD(
@@ -46,6 +47,8 @@ contract Helper is Test {
                 )
             )
         );
+
+        swapFeeDeducted = IRouter(ROUTER).feeDeducted();
 
         deal(ASSET, address(this), 10_000e6);
         ASSET.safeApprove(address(vault), type(uint256).max);

@@ -53,11 +53,11 @@ contract BrrUSDTest is Helper {
     {
         uint256 rewardFee = vault.rewardFee();
         uint256 rewardFeeShare = amount.mulDiv(rewardFee, FEE_BASE);
-        uint256 preFeeAmount = amount.mulDiv(FEE_BASE, SWAP_FEE_DEDUCTED);
+        uint256 preFeeAmount = amount.mulDiv(FEE_BASE, swapFeeDeducted);
         protocolFeeReceiverShare = rewardFeeShare / 2;
         feeDistributorShare = rewardFeeShare - protocolFeeReceiverShare;
         feeDistributorSwapFeeShare =
-            (preFeeAmount - preFeeAmount.mulDiv(SWAP_FEE_DEDUCTED, FEE_BASE)) /
+            (preFeeAmount - preFeeAmount.mulDiv(swapFeeDeducted, FEE_BASE)) /
             2;
     }
 
