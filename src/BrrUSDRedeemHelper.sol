@@ -28,6 +28,9 @@ contract BrrUSDRedeemHelper {
      * @param  minAssets  uint256  The minimum amount of assets that must be redeemed.
      */
     function redeem(uint256 shares, address to, uint256 minAssets) external {
+        // Claim outstanding rewards and accrue interest prior to redeeming shares.
+        brrUSD.harvest();
+
         // Requires approval from the caller to spend their brrUSD balance.
         brrUSD.redeem(shares, address(this), msg.sender);
 

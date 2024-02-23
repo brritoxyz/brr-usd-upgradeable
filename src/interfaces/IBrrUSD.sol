@@ -7,4 +7,6 @@ interface IBrrUSD {
         address to,
         address owner
     ) external returns (uint256 assets);
+
+    function harvest() external;
 }
