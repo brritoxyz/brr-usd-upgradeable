@@ -21,4 +21,4 @@ The steps below assume that the code repo has already been cloned and the reader
 | Chain ID         | Chain             | Contract | Contract Address                           | Deployment Tx |
 | :--------------- | :---------------- | :----------------------------------------- | :----------------------------------------- | :------------ |
 | 8453                | Base  | BrrUSD.sol | 0xe5d0481E17E89f99512FBCd1483b0eE8692529Ef | [BaseScan](https://basescan.org/tx/0xe3a88da9459bc5555e6cc6825b749462a0c7661786d88191af0241501ee2cded) |
-| 8453                | Base  | BrrUSDRedeemHelper.sol | 0x2D4A73CbA0138861e7eA39945775379bAA5E9cAA | [BaseScan](https://basescan.org/tx/0xb3a559978a682de8ab9a8b0a3263b30bc57ee40e115cb4afd0845602dbdcf69d) |
+| 8453                | Base  | BrrUSDRedeemHelper.sol | 0x8B9052e02Fd6ed74A2C13de9E0f5512c6B546A82 | [BaseScan](https://basescan.org/tx/0x66abfa4a1fc91808cb45447db060757b172d135138fd8c375a84026d00d9276a) |
