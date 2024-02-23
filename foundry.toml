@@ -13,7 +13,7 @@ runs = 100
 
 [profile.optimized]
 optimizer = true
-optimizer_runs = 4_294_967_295
+optimizer_runs = 1_000_000
 via_ir = true
 out = 'optimized-out'
 
