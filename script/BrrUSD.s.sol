@@ -47,7 +47,7 @@ contract BrrUSDScript is Script {
         );
 
         // Deploy the new helper contract for redemptions.
-        new BrrUSDRedeemHelper(address(vault));
+        new BrrUSDRedeemHelper(address(vault), ROUTER);
 
         ASSET.safeApprove(address(vault), type(uint256).max);
 

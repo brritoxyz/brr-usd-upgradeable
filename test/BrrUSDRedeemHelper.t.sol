@@ -15,7 +15,7 @@ contract BrrUSDRedeemHelperTest is Test, Helper {
     receive() external payable {}
 
     constructor() {
-        redeemHelper = new BrrUSDRedeemHelper(address(vault));
+        redeemHelper = new BrrUSDRedeemHelper(address(vault), ROUTER);
 
         vault.approve(address(redeemHelper), type(uint256).max);
     }
