@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import {ERC1967Factory} from "solady/utils/ERC1967Factory.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {BrrUSD} from "src/BrrUSD.sol";
-import {BrrUSDRedeemHelper} from "src/BrrUSDRedeemHelper.sol";
+import {BrrUSDHelper} from "src/BrrUSDHelper.sol";
 
 contract BrrUSDScript is Script {
     using SafeTransferLib for address;
@@ -47,7 +47,7 @@ contract BrrUSDScript is Script {
         );
 
         // Deploy the new helper contract for redemptions.
-        new BrrUSDRedeemHelper(address(vault), ROUTER);
+        new BrrUSDHelper(address(vault), ROUTER);
 
         ASSET.safeApprove(address(vault), type(uint256).max);
 

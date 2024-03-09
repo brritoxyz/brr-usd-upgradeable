@@ -4,18 +4,18 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {BrrUSD} from "src/BrrUSD.sol";
-import {BrrUSDRedeemHelper} from "src/BrrUSDRedeemHelper.sol";
+import {BrrUSDHelper} from "src/BrrUSDHelper.sol";
 import {Helper} from "test/Helper.sol";
 
-contract BrrUSDRedeemHelperTest is Test, Helper {
+contract BrrUSDHelperTest is Test, Helper {
     using SafeTransferLib for address;
 
-    BrrUSDRedeemHelper public immutable redeemHelper;
+    BrrUSDHelper public immutable redeemHelper;
 
     receive() external payable {}
 
     constructor() {
-        redeemHelper = new BrrUSDRedeemHelper(address(vault), ROUTER);
+        redeemHelper = new BrrUSDHelper(address(vault), ROUTER);
 
         vault.approve(address(redeemHelper), type(uint256).max);
     }
@@ -28,7 +28,7 @@ contract BrrUSDRedeemHelperTest is Test, Helper {
         uint256 shares = vault.deposit(1e6, address(this), 1);
         uint256 assets = vault.convertToAssets(shares) + 1e6;
 
-        vm.expectRevert(BrrUSDRedeemHelper.InsufficientAssetsRedeemed.selector);
+        vm.expectRevert(BrrUSDHelper.InsufficientAssetsRedeemed.selector);
 
         redeemHelper.redeem(shares, address(this), assets);
     }

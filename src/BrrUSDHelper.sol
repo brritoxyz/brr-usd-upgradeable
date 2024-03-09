@@ -6,7 +6,7 @@ import {IBrrUSD} from "src/interfaces/IBrrUSD.sol";
 import {IComet} from "src/interfaces/IComet.sol";
 import {IRouter} from "src/interfaces/IRouter.sol";
 
-contract BrrUSDRedeemHelper {
+contract BrrUSDHelper {
     using SafeTransferLib for address;
 
     IComet private constant _COMET =
