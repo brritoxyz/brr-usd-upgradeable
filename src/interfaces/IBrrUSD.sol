@@ -2,6 +2,12 @@
 pragma solidity ^0.8.0;
 
 interface IBrrUSD {
+    function deposit(
+        uint256 amount,
+        address to,
+        uint256 minShares
+    ) external returns (uint256 shares);
+
     function redeem(
         uint256 shares,
         address to,

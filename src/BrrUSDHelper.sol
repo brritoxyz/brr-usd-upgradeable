@@ -25,10 +25,42 @@ contract BrrUSDHelper {
         brrUSD = IBrrUSD(_brrUSD);
         router = IRouter(_router);
 
-        // Allow the router to spend our token balances for converting to and from USDC
-        // when deopsiting or withdrawing assets.
+        // Approve token spend allowances for converting to and from USDC/USDBC when depositing or withdrawing.
         _USDC.safeApprove(_router, type(uint256).max);
         _USDBC.safeApprove(_router, type(uint256).max);
+        _USDBC.safeApprove(_brrUSD, type(uint256).max);
+    }
+
+    /**
+     * @notice Mints `shares` Vault shares to `to` by depositing `assets` received from supplying USDC.
+     * @param  amount     uint256  Amount of USDC to deposit.
+     * @param  to         address  Address to mint shares to.
+     * @param  minShares  uint256  The minimum amount of shares that must be minted.
+     * @return shares     uint256  Amount of shares minted.
+     */
+    function deposit(
+        uint256 amount,
+        address to,
+        uint256 minShares
+    ) external returns (uint256 shares) {
+        _USDC.safeTransferFrom(msg.sender, address(this), amount);
+
+        (uint256 index, uint256 quote) = router.getSwapOutput(
+            keccak256(abi.encodePacked(_USDC, _USDBC)),
+            amount
+        );
+
+        // Convert USDC to USDbC, which can then be deposited into the brrUSD contract.
+        uint256 depositAssets = router.swap(
+            _USDC,
+            _USDBC,
+            amount,
+            quote,
+            index,
+            address(0)
+        );
+
+        return brrUSD.deposit(depositAssets, to, minShares);
     }
 
     /**
