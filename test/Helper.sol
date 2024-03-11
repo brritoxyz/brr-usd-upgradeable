@@ -29,6 +29,10 @@ contract Helper is Test {
     uint256 public constant COMET_ROUNDING_ERROR_MARGIN = 2;
     uint8 public constant USDC_DECIMALS = 6;
     uint8 public constant USDBC_DECIMALS = 6;
+    bytes32 public constant USDC_USDBC_PAIR =
+        0xdcc50c3ab25d4ef721f614c96012bfb9eb3ae8e7a576e2d2d831fcd947685013;
+    bytes32 public constant USDBC_USDC_PAIR =
+        0x46553b59eca6ca194c1e37832a44f4e193ac3548d5573b119d62837c673a72aa;
     address public immutable admin = address(this);
     address public immutable vaultImplementation = address(new BrrUSD());
     BrrUSD public immutable vault;

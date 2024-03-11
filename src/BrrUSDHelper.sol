@@ -45,13 +45,13 @@ contract BrrUSDHelper {
      * @param  amount     uint256  Amount of USDC to deposit.
      * @param  to         address  Address to mint shares to.
      * @param  minShares  uint256  The minimum amount of shares that must be minted.
-     * @return shares     uint256  Amount of shares minted.
+     * @return            uint256  Amount of shares minted.
      */
     function deposit(
         uint256 amount,
         address to,
         uint256 minShares
-    ) external returns (uint256 shares) {
+    ) external returns (uint256) {
         _USDC.safeTransferFrom(msg.sender, address(this), amount);
 
         (uint256 index, uint256 quote) = router.getSwapOutput(

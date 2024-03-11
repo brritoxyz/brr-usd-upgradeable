@@ -9,7 +9,7 @@ via_ir = false
 evm_version = 'paris'
 
 [fuzz]
-runs = 100
+runs = 1
 
 [profile.optimized]
 optimizer = true

@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {BrrUSD} from "src/BrrUSD.sol";
 import {BrrUSDHelper} from "src/BrrUSDHelper.sol";
+import {IRouter} from "src/interfaces/IRouter.sol";
 import {Helper} from "test/Helper.sol";
 
 contract BrrUSDHelperTest is Test, Helper {
@@ -17,7 +18,90 @@ contract BrrUSDHelperTest is Test, Helper {
     constructor() {
         redeemHelper = new BrrUSDHelper(address(vault), ROUTER);
 
-        vault.approve(address(redeemHelper), type(uint256).max);
+        address(vault).safeApprove(address(redeemHelper), type(uint256).max);
+        USDC.safeApprove(address(redeemHelper), type(uint256).max);
+
+        // Transfer the balance of a large USDC holder to self since `deal` is reverting.
+        address usdcWhale = 0xcDAC0d6c6C59727a65F871236188350531885C43;
+
+        vm.startPrank(usdcWhale);
+
+        USDC.safeTransfer(address(this), USDC.balanceOf(usdcWhale));
+
+        vm.stopPrank();
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                             deposit
+    //////////////////////////////////////////////////////////////*/
+
+    function testCannotDepositInsufficientSharesMinted() external {
+        uint256 amount = 100e6;
+        address to = address(this);
+        uint256 minShares = vault.convertToShares(amount) + 1;
+
+        vm.expectRevert(BrrUSD.InsufficientSharesMinted.selector);
+
+        redeemHelper.deposit(amount, to, minShares);
+    }
+
+    function testDeposit() external {
+        uint256 amount = 100e6;
+        address to = address(this);
+        (, uint256 quote) = IRouter(ROUTER).getSwapOutput(
+            USDC_USDBC_PAIR,
+            amount
+        );
+        uint256 minShares = vault.convertToShares(
+            quote,
+            vault.totalSupply(),
+            vault.totalAssets()
+        ) - COMET_ROUNDING_ERROR_MARGIN;
+        uint256 usdcBalanceBefore = USDC.balanceOf(address(this));
+        uint256 sharesBalanceBefore = vault.balanceOf(to);
+        uint256 totalAssetsBefore = vault.totalAssets();
+
+        redeemHelper.deposit(amount, to, minShares);
+
+        uint256 sharesReceived = vault.balanceOf(to) - sharesBalanceBefore;
+        uint256 assetsReceived = vault.totalAssets() - totalAssetsBefore;
+
+        assertLe(minShares, sharesReceived);
+        assertEq(usdcBalanceBefore - amount, USDC.balanceOf(address(this)));
+        assertLe(quote - COMET_ROUNDING_ERROR_MARGIN, assetsReceived);
+        assertEq(0, vault.balanceOf(address(redeemHelper)));
+        assertEq(0, USDC.balanceOf(address(redeemHelper)));
+        assertEq(0, USDBC.balanceOf(address(redeemHelper)));
+    }
+
+    function testDepositFuzz(uint256 amount) external {
+        amount = bound(amount, 1e6, type(uint40).max);
+
+        address to = address(this);
+        (, uint256 quote) = IRouter(ROUTER).getSwapOutput(
+            USDC_USDBC_PAIR,
+            amount
+        );
+        uint256 minShares = vault.convertToShares(
+            quote,
+            vault.totalSupply(),
+            vault.totalAssets()
+        ) - COMET_ROUNDING_ERROR_MARGIN;
+        uint256 usdcBalanceBefore = USDC.balanceOf(address(this));
+        uint256 sharesBalanceBefore = vault.balanceOf(to);
+        uint256 totalAssetsBefore = vault.totalAssets();
+
+        redeemHelper.deposit(amount, to, minShares);
+
+        uint256 sharesReceived = vault.balanceOf(to) - sharesBalanceBefore;
+        uint256 assetsReceived = vault.totalAssets() - totalAssetsBefore;
+
+        assertLe(minShares, sharesReceived);
+        assertEq(usdcBalanceBefore - amount, USDC.balanceOf(address(this)));
+        assertLe(quote - COMET_ROUNDING_ERROR_MARGIN, assetsReceived);
+        assertEq(0, vault.balanceOf(address(redeemHelper)));
+        assertEq(0, USDC.balanceOf(address(redeemHelper)));
+        assertEq(0, USDBC.balanceOf(address(redeemHelper)));
     }
 
     /*//////////////////////////////////////////////////////////////
