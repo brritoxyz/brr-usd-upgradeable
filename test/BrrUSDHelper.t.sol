@@ -40,17 +40,17 @@ contract BrrUSDHelperTest is Test, Helper {
         uint256 assets = vault.convertToAssets(shares) -
             COMET_ROUNDING_ERROR_MARGIN;
 
-        uint256 assetBalanceBefore = ASSET.balanceOf(address(this));
+        uint256 assetBalanceBefore = USDBC.balanceOf(address(this));
 
         redeemHelper.redeem(shares, address(this), assets);
 
         // Account for Comet rounding down and compare against the USDC amount received.
-        assertLe(assets, ASSET.balanceOf(address(this)) - assetBalanceBefore);
+        assertLe(assets, USDBC.balanceOf(address(this)) - assetBalanceBefore);
 
         // The redeem helper should not maintain balances for any of the tokens it handles.
         assertEq(0, vault.balanceOf(address(redeemHelper)));
         assertEq(0, COMET.balanceOf(address(redeemHelper)));
-        assertEq(0, ASSET.balanceOf(address(redeemHelper)));
+        assertEq(0, USDBC.balanceOf(address(redeemHelper)));
     }
 
     function testRedeemFuzz(uint8 assetMultiplier) external {
@@ -58,15 +58,15 @@ contract BrrUSDHelperTest is Test, Helper {
         uint256 shares = vault.deposit(deposit, address(this), 1);
         uint256 assets = vault.convertToAssets(shares) -
             COMET_ROUNDING_ERROR_MARGIN;
-        uint256 assetBalanceBefore = ASSET.balanceOf(address(this));
+        uint256 assetBalanceBefore = USDBC.balanceOf(address(this));
 
         redeemHelper.redeem(shares, address(this), assets);
 
         // Account for Comet rounding down and compare against the ETH amount received.
-        assertLe(assets, ASSET.balanceOf(address(this)) - assetBalanceBefore);
+        assertLe(assets, USDBC.balanceOf(address(this)) - assetBalanceBefore);
 
         assertEq(0, vault.balanceOf(address(redeemHelper)));
         assertEq(0, COMET.balanceOf(address(redeemHelper)));
-        assertEq(0, ASSET.balanceOf(address(redeemHelper)));
+        assertEq(0, USDBC.balanceOf(address(redeemHelper)));
     }
 }

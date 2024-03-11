@@ -14,6 +14,15 @@ contract BrrUSDHelper {
     address private constant _USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
     address private constant _USDBC =
         0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
+
+    // keccak256(abi.encodePacked(_USDC, _USDBC)).
+    bytes32 private constant _USDC_USDBC_PAIR =
+        0xdcc50c3ab25d4ef721f614c96012bfb9eb3ae8e7a576e2d2d831fcd947685013;
+
+    // keccak256(abi.encodePacked(_USDBC, _USDC)).
+    bytes32 private constant _USDBC_USDC_PAIR =
+        0x46553b59eca6ca194c1e37832a44f4e193ac3548d5573b119d62837c673a72aa;
+
     IBrrUSD public immutable brrUSD;
     IRouter public immutable router;
 
@@ -46,7 +55,7 @@ contract BrrUSDHelper {
         _USDC.safeTransferFrom(msg.sender, address(this), amount);
 
         (uint256 index, uint256 quote) = router.getSwapOutput(
-            keccak256(abi.encodePacked(_USDC, _USDBC)),
+            _USDC_USDBC_PAIR,
             amount
         );
 

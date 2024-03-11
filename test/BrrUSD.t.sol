@@ -34,8 +34,8 @@ contract BrrUSDTest is Helper {
     function _getAsset(uint256 amount) internal returns (uint256 balance) {
         balance = COMET.balanceOf(address(this));
 
-        deal(ASSET, address(this), amount);
-        IComet(COMET).supply(ASSET, amount);
+        deal(USDBC, address(this), amount);
+        IComet(COMET).supply(USDBC, amount);
 
         balance = COMET.balanceOf(address(this)) - balance;
     }
@@ -110,7 +110,7 @@ contract BrrUSDTest is Helper {
         // Comet must have max allowance for the purposes of supplying USDC for the cToken.
         assertEq(
             type(uint256).max,
-            ERC20(ASSET).allowance(address(vault), COMET)
+            ERC20(USDBC).allowance(address(vault), COMET)
         );
 
         assertEq(
@@ -148,7 +148,7 @@ contract BrrUSDTest is Helper {
     //////////////////////////////////////////////////////////////*/
 
     function testUnderlyingDecimals() external {
-        assertLe(ASSET_DECIMALS, vault.decimals());
+        assertLe(USDBC_DECIMALS, vault.decimals());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -213,8 +213,8 @@ contract BrrUSDTest is Helper {
 
         vm.startPrank(msgSender);
 
-        deal(ASSET, msgSender, amount);
-        ERC20(ASSET).approve(address(vault), type(uint256).max);
+        deal(USDBC, msgSender, amount);
+        ERC20(USDBC).approve(address(vault), type(uint256).max);
 
         vm.expectEmit(true, true, true, false, address(vault));
 
@@ -377,7 +377,7 @@ contract BrrUSDTest is Helper {
         );
         uint256 rewards = userBasic.baseTrackingAccrued * 1e12;
         (, uint256 quote) = IRouter(ROUTER).getSwapOutput(
-            keccak256(abi.encodePacked(COMP, ASSET)),
+            keccak256(abi.encodePacked(COMP, USDBC)),
             rewards
         );
         (
@@ -389,7 +389,7 @@ contract BrrUSDTest is Helper {
         uint256 newAssets = quote - 1;
         uint256 totalAssets = vault.totalAssets();
         uint256 totalSupply = vault.totalSupply();
-        uint256 protocolFeeReceiverBalance = ASSET.balanceOf(
+        uint256 protocolFeeReceiverBalance = USDBC.balanceOf(
             vault.protocolFeeReceiver()
         );
 
@@ -411,7 +411,7 @@ contract BrrUSDTest is Helper {
                 protocolFeeReceiverShare +
                 feeDistributorShare +
                 feeDistributorSwapFeeShare,
-            ASSET.balanceOf(_getVaultProxyAdmin())
+            USDBC.balanceOf(_getVaultProxyAdmin())
         );
     }
 
@@ -443,7 +443,7 @@ contract BrrUSDTest is Helper {
         if (rewards == 0) return;
 
         (, uint256 quote) = IRouter(ROUTER).getSwapOutput(
-            keccak256(abi.encodePacked(COMP, ASSET)),
+            keccak256(abi.encodePacked(COMP, USDBC)),
             rewards
         );
         (
@@ -455,10 +455,10 @@ contract BrrUSDTest is Helper {
         uint256 newAssets = quote - 5;
         uint256 totalAssets = vault.totalAssets();
         uint256 totalSupply = vault.totalSupply();
-        uint256 protocolFeeReceiverBalance = ASSET.balanceOf(
+        uint256 protocolFeeReceiverBalance = USDBC.balanceOf(
             vault.protocolFeeReceiver()
         );
-        uint256 feeDistributorBalance = ASSET.balanceOf(vault.feeDistributor());
+        uint256 feeDistributorBalance = USDBC.balanceOf(vault.feeDistributor());
 
         vm.expectEmit(true, true, true, true, address(vault));
 
@@ -480,18 +480,18 @@ contract BrrUSDTest is Helper {
                     protocolFeeReceiverShare +
                     feeDistributorShare +
                     feeDistributorSwapFeeShare,
-                ASSET.balanceOf(_getVaultProxyAdmin())
+                USDBC.balanceOf(_getVaultProxyAdmin())
             );
         } else {
             assertEq(
                 protocolFeeReceiverBalance + protocolFeeReceiverShare,
-                ASSET.balanceOf(_getVaultProxyAdmin())
+                USDBC.balanceOf(_getVaultProxyAdmin())
             );
             assertEq(
                 feeDistributorBalance +
                     feeDistributorShare +
                     feeDistributorSwapFeeShare,
-                ASSET.balanceOf(vault.feeDistributor())
+                USDBC.balanceOf(vault.feeDistributor())
             );
         }
     }

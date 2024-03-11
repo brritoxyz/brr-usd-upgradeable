@@ -20,13 +20,15 @@ contract Helper is Test {
         0x123964802e6ABabBE1Bc9547D72Ef1B69B00A6b1;
     address public constant ROUTER = 0xe88483B5901FA3537355C4324ccF92a8d4155260;
     uint256 public constant INITIAL_REWARD_FEE = 1_000;
-    address public constant ASSET = 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
+    address public constant USDC = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
+    address public constant USDBC = 0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
     address public constant COMP = 0x9e1028F5F1D5eDE59748FFceE5532509976840E0;
     string public constant NAME = "Brrito USD";
     string public constant SYMBOL = "brrUSD";
     uint256 internal constant FEE_BASE = 10_000;
     uint256 public constant COMET_ROUNDING_ERROR_MARGIN = 2;
-    uint8 public constant ASSET_DECIMALS = 6;
+    uint8 public constant USDC_DECIMALS = 6;
+    uint8 public constant USDBC_DECIMALS = 6;
     address public immutable admin = address(this);
     address public immutable vaultImplementation = address(new BrrUSD());
     BrrUSD public immutable vault;
@@ -50,9 +52,9 @@ contract Helper is Test {
 
         swapFeeDeducted = IRouter(ROUTER).feeDeducted();
 
-        deal(ASSET, address(this), 10_000e6);
-        ASSET.safeApprove(address(vault), type(uint256).max);
-        ASSET.safeApprove(COMET, type(uint256).max);
+        deal(USDBC, address(this), 10_000e6);
+        USDBC.safeApprove(address(vault), type(uint256).max);
+        USDBC.safeApprove(COMET, type(uint256).max);
         COMET.safeApprove(address(vault), type(uint256).max);
     }
 
