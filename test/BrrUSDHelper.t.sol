@@ -32,20 +32,20 @@ contract BrrUSDHelperTest is Test, Helper {
     }
 
     /*//////////////////////////////////////////////////////////////
-                             deposit
+                             depositUSDC
     //////////////////////////////////////////////////////////////*/
 
-    function testCannotDepositInsufficientSharesMinted() external {
+    function testCannotDepositUSDCInsufficientSharesMinted() external {
         uint256 amount = 100e6;
         address to = address(this);
         uint256 minShares = vault.convertToShares(amount) + 1;
 
         vm.expectRevert(BrrUSD.InsufficientSharesMinted.selector);
 
-        redeemHelper.deposit(amount, to, minShares);
+        redeemHelper.depositUSDC(amount, to, minShares);
     }
 
-    function testDeposit() external {
+    function testDepositUSDC() external {
         uint256 amount = 100e6;
         address to = address(this);
         (, uint256 quote) = IRouter(ROUTER).getSwapOutput(
@@ -61,7 +61,7 @@ contract BrrUSDHelperTest is Test, Helper {
         uint256 sharesBalanceBefore = vault.balanceOf(to);
         uint256 totalAssetsBefore = vault.totalAssets();
 
-        redeemHelper.deposit(amount, to, minShares);
+        redeemHelper.depositUSDC(amount, to, minShares);
 
         uint256 sharesReceived = vault.balanceOf(to) - sharesBalanceBefore;
         uint256 assetsReceived = vault.totalAssets() - totalAssetsBefore;
@@ -74,7 +74,7 @@ contract BrrUSDHelperTest is Test, Helper {
         assertEq(0, USDBC.balanceOf(address(redeemHelper)));
     }
 
-    function testDepositFuzz(uint256 amount) external {
+    function testDepositUSDCFuzz(uint256 amount) external {
         amount = bound(amount, 1e6, type(uint40).max);
 
         address to = address(this);
@@ -91,7 +91,7 @@ contract BrrUSDHelperTest is Test, Helper {
         uint256 sharesBalanceBefore = vault.balanceOf(to);
         uint256 totalAssetsBefore = vault.totalAssets();
 
-        redeemHelper.deposit(amount, to, minShares);
+        redeemHelper.depositUSDC(amount, to, minShares);
 
         uint256 sharesReceived = vault.balanceOf(to) - sharesBalanceBefore;
         uint256 assetsReceived = vault.totalAssets() - totalAssetsBefore;

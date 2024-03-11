@@ -41,13 +41,13 @@ contract BrrUSDHelper {
     }
 
     /**
-     * @notice Mints `shares` Vault shares to `to` by depositing `assets` received from supplying USDC.
+     * @notice Deposits USDC for brrUSD shares.
      * @param  amount     uint256  Amount of USDC to deposit.
      * @param  to         address  Address to mint shares to.
      * @param  minShares  uint256  The minimum amount of shares that must be minted.
      * @return            uint256  Amount of shares minted.
      */
-    function deposit(
+    function depositUSDC(
         uint256 amount,
         address to,
         uint256 minShares
@@ -73,12 +73,11 @@ contract BrrUSDHelper {
     }
 
     /**
-     * @notice Redeem brrUSD for USDC.
-     * @param  shares     uint256  Amount of shares to redeem.
-     * @param  to         address  USDC recipient.
-     * @param  minAssets  uint256  The minimum amount of assets that must be redeemed.
+     * @notice Redeems brrUSD shares for USDbC and returns the balance.
+     * @param  shares  uint256  Amount of shares to redeem.
+     * @return         uint256  Amount of USDbC redeemed.
      */
-    function redeem(uint256 shares, address to, uint256 minAssets) external {
+    function _redeem(uint256 shares) private returns (uint256) {
         // Claim outstanding rewards and accrue interest prior to redeeming shares.
         brrUSD.harvest();
 
@@ -88,10 +87,52 @@ contract BrrUSDHelper {
         // Comet's alias for an "entire balance" is `type(uint256).max`.
         _COMET.withdraw(_USDBC, type(uint256).max);
 
-        uint256 balance = _USDBC.balanceOf(address(this));
+        return _USDBC.balanceOf(address(this));
+    }
 
-        if (balance < minAssets) revert InsufficientAssetsRedeemed();
+    /**
+     * @notice Redeem brrUSD for USDBC.
+     * @param  shares     uint256  Amount of shares to redeem.
+     * @param  to         address  USDBC recipient.
+     * @param  minAssets  uint256  The minimum amount of assets that must be redeemed.
+     */
+    function redeem(uint256 shares, address to, uint256 minAssets) external {
+        uint256 redeemedAssets = _redeem(shares);
 
-        _USDBC.safeTransfer(to, balance);
+        if (redeemedAssets < minAssets) revert InsufficientAssetsRedeemed();
+
+        _USDBC.safeTransfer(to, redeemedAssets);
+    }
+
+    /**
+     * @notice Redeem brrUSD for USDC.
+     * @param  shares     uint256  Amount of shares to redeem.
+     * @param  to         address  USDC recipient.
+     * @param  minAssets  uint256  The minimum amount of assets that must be redeemed.
+     */
+    function redeemUSDC(
+        uint256 shares,
+        address to,
+        uint256 minAssets
+    ) external {
+        uint256 redeemedAssets = _redeem(shares);
+        (uint256 index, uint256 quote) = router.getSwapOutput(
+            _USDBC_USDC_PAIR,
+            redeemedAssets
+        );
+
+        // Convert the USDbC redeemed from shares into USDC.
+        uint256 convertedAssets = router.swap(
+            _USDC,
+            _USDBC,
+            redeemedAssets,
+            quote,
+            index,
+            address(0)
+        );
+
+        if (convertedAssets < minAssets) revert InsufficientAssetsRedeemed();
+
+        _USDC.safeTransfer(to, convertedAssets);
     }
 }
