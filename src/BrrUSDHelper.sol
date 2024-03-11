@@ -24,6 +24,11 @@ contract BrrUSDHelper {
     constructor(address _brrUSD, address _router) {
         brrUSD = IBrrUSD(_brrUSD);
         router = IRouter(_router);
+
+        // Allow the router to spend our token balances for converting to and from USDC
+        // when deopsiting or withdrawing assets.
+        _USDC.safeApprove(_router, type(uint256).max);
+        _USDBC.safeApprove(_router, type(uint256).max);
     }
 
     /**
