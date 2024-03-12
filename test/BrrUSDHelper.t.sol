@@ -57,27 +57,30 @@ contract BrrUSDHelperTest is Test, Helper {
             vault.totalSupply(),
             vault.totalAssets()
         ) - COMET_ROUNDING_ERROR_MARGIN;
+        uint256 minAssets = vault.convertToAssets(quote) -
+            COMET_ROUNDING_ERROR_MARGIN;
         uint256 usdcBalanceBefore = USDC.balanceOf(address(this));
         uint256 sharesBalanceBefore = vault.balanceOf(to);
         uint256 totalAssetsBefore = vault.totalAssets();
-
-        redeemHelper.depositUSDC(amount, to, minShares);
-
+        uint256 totalSupplyBefore = vault.totalSupply();
+        uint256 mintedShares = redeemHelper.depositUSDC(amount, to, minShares);
         uint256 sharesReceived = vault.balanceOf(to) - sharesBalanceBefore;
         uint256 assetsReceived = vault.totalAssets() - totalAssetsBefore;
+        uint256 supplyAdded = vault.totalSupply() - totalSupplyBefore;
 
         assertLe(minShares, sharesReceived);
+        assertLe(minShares, mintedShares);
+        assertLe(minAssets, assetsReceived);
+        assertEq(mintedShares, supplyAdded);
         assertEq(usdcBalanceBefore - amount, USDC.balanceOf(address(this)));
-        assertLe(quote - COMET_ROUNDING_ERROR_MARGIN, assetsReceived);
         assertEq(0, vault.balanceOf(address(redeemHelper)));
         assertEq(0, USDC.balanceOf(address(redeemHelper)));
         assertEq(0, USDBC.balanceOf(address(redeemHelper)));
     }
 
-    function testDepositUSDCFuzz(uint256 amount) external {
+    function testDepositUSDCFuzz(uint256 amount, address to) external {
         amount = bound(amount, 1e6, type(uint40).max);
 
-        address to = address(this);
         (, uint256 quote) = IRouter(ROUTER).getSwapOutput(
             USDC_USDBC_PAIR,
             amount
@@ -87,18 +90,22 @@ contract BrrUSDHelperTest is Test, Helper {
             vault.totalSupply(),
             vault.totalAssets()
         ) - COMET_ROUNDING_ERROR_MARGIN;
+        uint256 minAssets = vault.convertToAssets(quote) -
+            COMET_ROUNDING_ERROR_MARGIN;
         uint256 usdcBalanceBefore = USDC.balanceOf(address(this));
         uint256 sharesBalanceBefore = vault.balanceOf(to);
         uint256 totalAssetsBefore = vault.totalAssets();
-
-        redeemHelper.depositUSDC(amount, to, minShares);
-
+        uint256 totalSupplyBefore = vault.totalSupply();
+        uint256 mintedShares = redeemHelper.depositUSDC(amount, to, minShares);
         uint256 sharesReceived = vault.balanceOf(to) - sharesBalanceBefore;
         uint256 assetsReceived = vault.totalAssets() - totalAssetsBefore;
+        uint256 supplyAdded = vault.totalSupply() - totalSupplyBefore;
 
         assertLe(minShares, sharesReceived);
+        assertLe(minShares, mintedShares);
+        assertLe(minAssets, assetsReceived);
+        assertEq(mintedShares, supplyAdded);
         assertEq(usdcBalanceBefore - amount, USDC.balanceOf(address(this)));
-        assertLe(quote - COMET_ROUNDING_ERROR_MARGIN, assetsReceived);
         assertEq(0, vault.balanceOf(address(redeemHelper)));
         assertEq(0, USDC.balanceOf(address(redeemHelper)));
         assertEq(0, USDBC.balanceOf(address(redeemHelper)));
