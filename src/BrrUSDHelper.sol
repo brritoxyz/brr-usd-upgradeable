@@ -121,10 +121,10 @@ contract BrrUSDHelper {
             redeemedAssets
         );
 
-        // Convert the USDbC redeemed from shares into USDC.
+        // Convert the USDbC that was redeemed into USDC.
         uint256 convertedAssets = router.swap(
-            _USDC,
             _USDBC,
+            _USDC,
             redeemedAssets,
             quote,
             index,
