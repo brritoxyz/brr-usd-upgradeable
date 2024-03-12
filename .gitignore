@@ -8,10 +8,10 @@ optimized-out/
 broadcast/BrrUSD.s.sol/dry-run
 broadcast/BrrUSD.s.sol/8453/*
 !broadcast/BrrUSD.s.sol/8453/run-latest.json
-!broadcast/BrrUSDRedeemHelper.s.sol/
-broadcast/BrrUSDRedeemHelper.s.sol/dry-run
-broadcast/BrrUSDRedeemHelper.s.sol/8453/*
-!broadcast/BrrUSDRedeemHelper.s.sol/8453/run-latest.json
+!broadcast/BrrUSDHelper.s.sol/
+broadcast/BrrUSDHelper.s.sol/dry-run
+broadcast/BrrUSDHelper.s.sol/8453/*
+!broadcast/BrrUSDHelper.s.sol/8453/run-latest.json
 
 # Dotenv file
 .env
