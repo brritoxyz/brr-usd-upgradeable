@@ -28,8 +28,6 @@ contract BrrUSDHelper {
 
     error InsufficientAssetsRedeemed();
 
-    receive() external payable {}
-
     constructor(address _brrUSD, address _router) {
         brrUSD = IBrrUSD(_brrUSD);
         router = IRouter(_router);

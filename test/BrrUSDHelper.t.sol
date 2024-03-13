@@ -13,8 +13,6 @@ contract BrrUSDHelperTest is Test, Helper {
 
     BrrUSDHelper public immutable redeemHelper;
 
-    receive() external payable {}
-
     constructor() {
         redeemHelper = new BrrUSDHelper(address(vault), ROUTER);
 
