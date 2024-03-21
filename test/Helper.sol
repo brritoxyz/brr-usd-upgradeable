@@ -29,6 +29,7 @@ contract Helper is Test {
     address public constant COMP = 0x9e1028F5F1D5eDE59748FFceE5532509976840E0;
     string public constant NAME = "Brrito USD";
     string public constant SYMBOL = "brrUSD";
+    string public constant SYMBOLV2 = "brrUSDv2";
     uint256 internal constant FEE_BASE = 10_000;
     uint256 public constant COMET_ROUNDING_ERROR_MARGIN = 2;
     uint8 public constant USDC_DECIMALS = 6;
@@ -90,6 +91,9 @@ contract Helper is Test {
         USDBC.safeApprove(address(vault), type(uint256).max);
         USDBC.safeApprove(COMET_USDBC, type(uint256).max);
         COMET_USDBC.safeApprove(address(vault), type(uint256).max);
+        USDC.safeApprove(address(vaultV2), type(uint256).max);
+        USDC.safeApprove(COMET_USDC, type(uint256).max);
+        COMET_USDC.safeApprove(address(vaultV2), type(uint256).max);
     }
 
     /**
@@ -98,5 +102,13 @@ contract Helper is Test {
      */
     function _getVaultProxyAdmin() internal view returns (address) {
         return ERC1967_FACTORY.adminOf(address(vault));
+    }
+
+    /**
+     * @notice Convenient helper for getting the vault (ERC1967 proxy) admin.
+     * @return address  Proxy admin.
+     */
+    function _getVaultV2ProxyAdmin() internal view returns (address) {
+        return ERC1967_FACTORY.adminOf(address(vaultV2));
     }
 }
