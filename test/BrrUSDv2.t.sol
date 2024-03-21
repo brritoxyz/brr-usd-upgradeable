@@ -9,7 +9,7 @@ import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 import {Initializable} from "solady/utils/Initializable.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {Helper} from "test/Helper.sol";
-import {BrrUSD} from "src/BrrUSD.sol";
+import {BrrUSDv2} from "src/BrrUSDv2.sol";
 import {IComet} from "src/interfaces/IComet.sol";
 import {ICometRewards} from "src/interfaces/ICometRewards.sol";
 import {IRouter} from "src/interfaces/IRouter.sol";
@@ -34,8 +34,7 @@ contract BrrUSDv2Test is Helper {
     function _getAsset(uint256 amount) internal returns (uint256 balance) {
         balance = COMET_USDC.balanceOf(address(this));
 
-        deal(USDBC, address(this), amount);
-        IComet(COMET_USDC).supply(USDBC, amount);
+        IComet(COMET_USDC).supply(USDC, amount);
 
         balance = COMET_USDC.balanceOf(address(this)) - balance;
     }
@@ -51,7 +50,7 @@ contract BrrUSDv2Test is Helper {
             uint256 feeDistributorSwapFeeShare
         )
     {
-        uint256 rewardFee = vault.rewardFee();
+        uint256 rewardFee = vaultV2.rewardFee();
         uint256 rewardFeeShare = amount.mulDiv(rewardFee, FEE_BASE);
         uint256 preFeeAmount = amount.mulDiv(FEE_BASE, swapFeeDeducted);
         protocolFeeReceiverShare = rewardFeeShare / 2;
@@ -68,7 +67,7 @@ contract BrrUSDv2Test is Helper {
     function testCannotInitializeInvalidInitialization() external {
         vm.expectRevert(Initializable.InvalidInitialization.selector);
 
-        vault.initialize(
+        vaultV2.initialize(
             COMET_REWARDS,
             ROUTER,
             INITIAL_REWARD_FEE,
@@ -78,9 +77,9 @@ contract BrrUSDv2Test is Helper {
     }
 
     function testInitialize() external {
-        BrrUSD uninitializedVault = BrrUSD(
+        BrrUSDv2 uninitializedVault = BrrUSDv2(
             // Deploys a new proxy but does not initialize.
-            ERC1967_FACTORY.deploy(vaultImplementation, admin)
+            ERC1967_FACTORY.deploy(vaultV2Implementation, admin)
         );
 
         assertEq(address(0), address(uninitializedVault.cometRewards()));
@@ -110,12 +109,12 @@ contract BrrUSDv2Test is Helper {
         // Comet must have max allowance for the purposes of supplying USDC for the cToken.
         assertEq(
             type(uint256).max,
-            ERC20(USDBC).allowance(address(vault), COMET_USDC)
+            ERC20(USDC).allowance(address(vaultV2), COMET_USDC)
         );
 
         assertEq(
             type(uint256).max,
-            ERC20(COMP).allowance(address(vault), ROUTER)
+            ERC20(COMP).allowance(address(vaultV2), ROUTER)
         );
     }
 
@@ -124,7 +123,7 @@ contract BrrUSDv2Test is Helper {
     //////////////////////////////////////////////////////////////*/
 
     function testName() external {
-        assertEq(NAME, vault.name());
+        assertEq(NAME, vaultV2.name());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -132,7 +131,7 @@ contract BrrUSDv2Test is Helper {
     //////////////////////////////////////////////////////////////*/
 
     function testSymbol() external {
-        assertEq(SYMBOL, vault.symbol());
+        assertEq(SYMBOLV2, vaultV2.symbol());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -140,7 +139,7 @@ contract BrrUSDv2Test is Helper {
     //////////////////////////////////////////////////////////////*/
 
     function testAsset() external {
-        assertEq(COMET_USDC, vault.asset());
+        assertEq(COMET_USDC, vaultV2.asset());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -148,7 +147,7 @@ contract BrrUSDv2Test is Helper {
     //////////////////////////////////////////////////////////////*/
 
     function testUnderlyingDecimals() external {
-        assertLe(USDBC_DECIMALS, vault.decimals());
+        assertLe(USDC_DECIMALS, vaultV2.decimals());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -158,30 +157,30 @@ contract BrrUSDv2Test is Helper {
     function testCannotDepositDirectInsufficientSharesMinted() external {
         uint256 amount = 0;
         address to = address(this);
-        uint256 minShares = vault.convertToShares(amount) + 1;
+        uint256 minShares = vaultV2.convertToShares(amount) + 1;
 
-        vm.expectRevert(BrrUSD.InsufficientSharesMinted.selector);
+        vm.expectRevert(BrrUSDv2.InsufficientSharesMinted.selector);
 
-        vault.deposit(amount, to, minShares);
+        vaultV2.deposit(amount, to, minShares);
     }
 
     function testDepositDirect() external {
         uint256 amount = 1e6;
         address to = address(this);
-        uint256 minShares = vault.convertToShares(
+        uint256 minShares = vaultV2.convertToShares(
             amount - COMET_ROUNDING_ERROR_MARGIN
         );
-        uint256 totalSupplyBefore = vault.totalSupply();
-        uint256 totalAssetsBefore = vault.totalAssets();
+        uint256 totalSupplyBefore = vaultV2.totalSupply();
+        uint256 totalAssetsBefore = vaultV2.totalAssets();
 
-        vm.expectEmit(true, true, true, false, address(vault));
+        vm.expectEmit(true, true, true, false, address(vaultV2));
 
         emit ERC4626.Deposit(address(this), to, amount, 0);
 
-        uint256 shares = vault.deposit(amount, to, minShares);
-        uint256 totalSupplyAfter = vault.totalSupply();
-        uint256 totalAssetsAfter = vault.totalAssets();
-        uint256 expectedShares = vault.convertToShares(
+        uint256 shares = vaultV2.deposit(amount, to, minShares);
+        uint256 totalSupplyAfter = vaultV2.totalSupply();
+        uint256 totalAssetsAfter = vaultV2.totalAssets();
+        uint256 expectedShares = vaultV2.convertToShares(
             totalAssetsAfter - totalAssetsBefore,
             totalSupplyBefore,
             totalAssetsBefore
@@ -190,40 +189,39 @@ contract BrrUSDv2Test is Helper {
         assertLe(minShares, shares);
         assertEq(expectedShares, shares);
         assertEq(shares, totalSupplyAfter - totalSupplyBefore);
-        assertEq(shares, vault.balanceOf(to));
+        assertEq(shares, vaultV2.balanceOf(to));
         assertLe(totalSupplyAfter, totalAssetsAfter);
     }
 
     function testDepositDirectFuzz(
         address msgSender,
-        uint80 amount,
+        uint256 amount,
         address to
     ) external {
-        vm.assume(
-            msgSender != address(0) &&
-                amount > COMET_ROUNDING_ERROR_MARGIN &&
-                to != address(0)
-        );
+        amount = bound(amount, 1e3, 1e13);
 
-        uint256 minShares = vault.convertToShares(
+        vm.assume(msgSender != address(0) && to != address(0));
+
+        USDC.safeTransfer(msgSender, amount);
+
+        uint256 minShares = vaultV2.convertToShares(
             amount - COMET_ROUNDING_ERROR_MARGIN
         );
-        uint256 totalSupplyBefore = vault.totalSupply();
-        uint256 totalAssetsBefore = vault.totalAssets();
+        uint256 totalSupplyBefore = vaultV2.totalSupply();
+        uint256 totalAssetsBefore = vaultV2.totalAssets();
 
         vm.startPrank(msgSender);
 
-        deal(USDBC, msgSender, amount);
-        ERC20(USDBC).approve(address(vault), type(uint256).max);
+        ERC20(USDC).approve(address(vaultV2), type(uint256).max);
 
-        vm.expectEmit(true, true, true, false, address(vault));
+        vm.expectEmit(true, true, true, false, address(vaultV2));
 
         emit ERC4626.Deposit(msgSender, to, amount, 0);
 
-        uint256 shares = vault.deposit(amount, to, minShares);
-        uint256 totalSupplyAfter = vault.totalSupply();
-        uint256 totalAssetsAfter = vault.totalAssets();
-        uint256 expectedShares = vault.convertToShares(
+        uint256 shares = vaultV2.deposit(amount, to, minShares);
+        uint256 totalSupplyAfter = vaultV2.totalSupply();
+        uint256 totalAssetsAfter = vaultV2.totalAssets();
+        uint256 expectedShares = vaultV2.convertToShares(
             totalAssetsAfter - totalAssetsBefore,
             totalSupplyBefore,
             totalAssetsBefore
@@ -234,7 +232,7 @@ contract BrrUSDv2Test is Helper {
         assertLe(minShares, shares);
         assertEq(expectedShares, shares);
         assertEq(shares, totalSupplyAfter - totalSupplyBefore);
-        assertEq(shares, vault.balanceOf(to));
+        assertEq(shares, vaultV2.balanceOf(to));
         assertLe(totalSupplyAfter, totalAssetsAfter);
     }
 
@@ -248,9 +246,9 @@ contract BrrUSDv2Test is Helper {
 
         assertLt(COMET_USDC.balanceOf(address(this)), assets);
 
-        vm.expectRevert(BrrUSD.InsufficientAssetBalance.selector);
+        vm.expectRevert(BrrUSDv2.InsufficientAssetBalance.selector);
 
-        vault.deposit(assets, to);
+        vaultV2.deposit(assets, to);
     }
 
     function testCannotDepositInsufficientAssetBalanceFuzz(
@@ -262,26 +260,26 @@ contract BrrUSDv2Test is Helper {
 
         assertLt(COMET_USDC.balanceOf(address(this)), assets);
 
-        vm.expectRevert(BrrUSD.InsufficientAssetBalance.selector);
+        vm.expectRevert(BrrUSDv2.InsufficientAssetBalance.selector);
 
-        vault.deposit(assets, to);
+        vaultV2.deposit(assets, to);
     }
 
     function testDeposit() external {
         uint256 assets = _getAsset(1e6);
         address to = address(this);
-        uint256 totalSupplyBefore = vault.totalSupply();
-        uint256 totalAssetsBefore = vault.totalAssets();
+        uint256 totalSupplyBefore = vaultV2.totalSupply();
+        uint256 totalAssetsBefore = vaultV2.totalAssets();
 
         // Comet rounds down transfer amounts, making it difficult to check the final emitted values.
-        vm.expectEmit(true, true, true, false, address(vault));
+        vm.expectEmit(true, true, true, false, address(vaultV2));
 
         emit ERC4626.Deposit(address(this), to, assets, 0);
 
-        uint256 shares = vault.deposit(assets, to);
-        uint256 totalSupplyAfter = vault.totalSupply();
-        uint256 totalAssetsAfter = vault.totalAssets();
-        uint256 expectedShares = vault.convertToShares(
+        uint256 shares = vaultV2.deposit(assets, to);
+        uint256 totalSupplyAfter = vaultV2.totalSupply();
+        uint256 totalAssetsAfter = vaultV2.totalAssets();
+        uint256 expectedShares = vaultV2.convertToShares(
             totalAssetsAfter - totalAssetsBefore,
             totalSupplyBefore,
             totalAssetsBefore
@@ -289,7 +287,7 @@ contract BrrUSDv2Test is Helper {
 
         assertEq(expectedShares, shares);
         assertEq(shares, totalSupplyAfter - totalSupplyBefore);
-        assertEq(shares, vault.balanceOf(to));
+        assertEq(shares, vaultV2.balanceOf(to));
         assertLe(totalSupplyAfter, totalAssetsAfter);
     }
 
@@ -300,17 +298,17 @@ contract BrrUSDv2Test is Helper {
 
         for (uint256 i = 0; i < anvilAccounts.length; ++i) {
             uint256 asset = _getAsset(baseAsset * (i + 1));
-            uint256 totalSupplyBefore = vault.totalSupply();
-            uint256 totalAssetsBefore = vault.totalAssets();
+            uint256 totalSupplyBefore = vaultV2.totalSupply();
+            uint256 totalAssetsBefore = vaultV2.totalAssets();
 
-            vm.expectEmit(true, true, true, false, address(vault));
+            vm.expectEmit(true, true, true, false, address(vaultV2));
 
             emit ERC4626.Deposit(address(this), anvilAccounts[i], asset, 0);
 
-            uint256 shares = vault.deposit(asset, anvilAccounts[i]);
-            uint256 totalSupplyAfter = vault.totalSupply();
-            uint256 totalAssetsAfter = vault.totalAssets();
-            uint256 expectedShares = vault.convertToShares(
+            uint256 shares = vaultV2.deposit(asset, anvilAccounts[i]);
+            uint256 totalSupplyAfter = vaultV2.totalSupply();
+            uint256 totalAssetsAfter = vaultV2.totalAssets();
+            uint256 expectedShares = vaultV2.convertToShares(
                 totalAssetsAfter - totalAssetsBefore,
                 totalSupplyBefore,
                 totalAssetsBefore
@@ -321,27 +319,27 @@ contract BrrUSDv2Test is Helper {
             assertLt(0, shares);
             assertEq(expectedShares, shares);
             assertEq(shares, totalSupplyAfter - totalSupplyBefore);
-            assertEq(shares, vault.balanceOf(anvilAccounts[i]));
+            assertEq(shares, vaultV2.balanceOf(anvilAccounts[i]));
             assertLe(totalSupplyAfter, totalAssetsAfter);
         }
 
-        assertEq(totalSupply, vault.totalSupply());
-        assertEq(totalAssets, vault.totalAssets());
+        assertEq(totalSupply, vaultV2.totalSupply());
+        assertEq(totalAssets, vaultV2.totalAssets());
     }
 
     function testDepositFuzz(uint40 assets, address to) external {
         assets = uint40(_getAsset(assets));
-        uint256 totalSupplyBefore = vault.totalSupply();
-        uint256 totalAssetsBefore = vault.totalAssets();
+        uint256 totalSupplyBefore = vaultV2.totalSupply();
+        uint256 totalAssetsBefore = vaultV2.totalAssets();
 
-        vm.expectEmit(true, true, true, false, address(vault));
+        vm.expectEmit(true, true, true, false, address(vaultV2));
 
         emit ERC4626.Deposit(address(this), to, assets, 0);
 
-        uint256 shares = vault.deposit(assets, to);
-        uint256 totalSupplyAfter = vault.totalSupply();
-        uint256 totalAssetsAfter = vault.totalAssets();
-        uint256 expectedShares = vault.convertToShares(
+        uint256 shares = vaultV2.deposit(assets, to);
+        uint256 totalSupplyAfter = vaultV2.totalSupply();
+        uint256 totalAssetsAfter = vaultV2.totalAssets();
+        uint256 expectedShares = vaultV2.convertToShares(
             totalAssetsAfter - totalAssetsBefore,
             totalSupplyBefore,
             totalAssetsBefore
@@ -349,7 +347,7 @@ contract BrrUSDv2Test is Helper {
 
         assertEq(expectedShares, shares);
         assertEq(shares, totalSupplyAfter - totalSupplyBefore);
-        assertEq(shares, vault.balanceOf(to));
+        assertEq(shares, vaultV2.balanceOf(to));
         assertLe(totalSupplyAfter, totalAssetsAfter);
     }
 
@@ -366,18 +364,18 @@ contract BrrUSDv2Test is Helper {
         // Reassign `assets` since Comet rounds down 1.
         assets = COMET_USDC.balanceOf(address(this));
 
-        vault.deposit(assets, address(this));
+        vaultV2.deposit(assets, address(this));
 
         skip(accrualTime);
 
-        IComet(COMET_USDC).accrueAccount(address(vault));
+        IComet(COMET_USDC).accrueAccount(address(vaultV2));
 
         IComet.UserBasic memory userBasic = IComet(COMET_USDC).userBasic(
-            address(vault)
+            address(vaultV2)
         );
         uint256 rewards = userBasic.baseTrackingAccrued * 1e12;
         (, uint256 quote) = IRouter(ROUTER).getSwapOutput(
-            keccak256(abi.encodePacked(COMP, USDBC)),
+            keccak256(abi.encodePacked(COMP, USDC)),
             rewards
         );
         (
@@ -387,31 +385,31 @@ contract BrrUSDv2Test is Helper {
         ) = _calculateFees(quote);
         quote -= protocolFeeReceiverShare + feeDistributorShare;
         uint256 newAssets = quote - 1;
-        uint256 totalAssets = vault.totalAssets();
-        uint256 totalSupply = vault.totalSupply();
-        uint256 protocolFeeReceiverBalance = USDBC.balanceOf(
-            vault.protocolFeeReceiver()
+        uint256 totalAssets = vaultV2.totalAssets();
+        uint256 totalSupply = vaultV2.totalSupply();
+        uint256 protocolFeeReceiverBalance = USDC.balanceOf(
+            vaultV2.protocolFeeReceiver()
         );
 
-        vm.expectEmit(true, true, true, true, address(vault));
+        vm.expectEmit(true, true, true, true, address(vaultV2));
 
-        emit BrrUSD.Harvest(
+        emit BrrUSDv2.Harvest(
             COMP,
             rewards,
             quote,
             protocolFeeReceiverShare + feeDistributorShare
         );
 
-        vault.harvest();
+        vaultV2.harvest();
 
-        assertEq(totalAssets + newAssets, vault.totalAssets());
-        assertEq(totalSupply, vault.totalSupply());
+        assertEq(totalAssets + newAssets, vaultV2.totalAssets());
+        assertEq(totalSupply, vaultV2.totalSupply());
         assertEq(
             protocolFeeReceiverBalance +
                 protocolFeeReceiverShare +
                 feeDistributorShare +
                 feeDistributorSwapFeeShare,
-            USDBC.balanceOf(_getVaultProxyAdmin())
+            USDC.balanceOf(_getVaultV2ProxyAdmin())
         );
     }
 
@@ -423,27 +421,27 @@ contract BrrUSDv2Test is Helper {
         vm.assume(assets > 1_000e6 && accrualTime > 100);
 
         // Randomly set the fee distributor to test proper fee distribution across two different accounts.
-        if (setFeeDistributor) vault.setFeeDistributor(address(0xbeef));
+        if (setFeeDistributor) vaultV2.setFeeDistributor(address(0xbeef));
 
         _getAsset(assets);
 
         assets = uint40(COMET_USDC.balanceOf(address(this)));
 
-        vault.deposit(assets, address(this));
+        vaultV2.deposit(assets, address(this));
 
         skip(accrualTime);
 
-        IComet(COMET_USDC).accrueAccount(address(vault));
+        IComet(COMET_USDC).accrueAccount(address(vaultV2));
 
         IComet.UserBasic memory userBasic = IComet(COMET_USDC).userBasic(
-            address(vault)
+            address(vaultV2)
         );
         uint256 rewards = uint256(userBasic.baseTrackingAccrued) * 1e12;
 
         if (rewards == 0) return;
 
         (, uint256 quote) = IRouter(ROUTER).getSwapOutput(
-            keccak256(abi.encodePacked(COMP, USDBC)),
+            keccak256(abi.encodePacked(COMP, USDC)),
             rewards
         );
         (
@@ -453,45 +451,47 @@ contract BrrUSDv2Test is Helper {
         ) = _calculateFees(quote);
         quote -= protocolFeeReceiverShare + feeDistributorShare;
         uint256 newAssets = quote - 5;
-        uint256 totalAssets = vault.totalAssets();
-        uint256 totalSupply = vault.totalSupply();
-        uint256 protocolFeeReceiverBalance = USDBC.balanceOf(
-            vault.protocolFeeReceiver()
+        uint256 totalAssets = vaultV2.totalAssets();
+        uint256 totalSupply = vaultV2.totalSupply();
+        uint256 protocolFeeReceiverBalance = USDC.balanceOf(
+            vaultV2.protocolFeeReceiver()
         );
-        uint256 feeDistributorBalance = USDBC.balanceOf(vault.feeDistributor());
+        uint256 feeDistributorBalance = USDC.balanceOf(
+            vaultV2.feeDistributor()
+        );
 
-        vm.expectEmit(true, true, true, true, address(vault));
+        vm.expectEmit(true, true, true, true, address(vaultV2));
 
-        emit BrrUSD.Harvest(
+        emit BrrUSDv2.Harvest(
             COMP,
             rewards,
             quote,
             protocolFeeReceiverShare + feeDistributorShare
         );
 
-        vault.harvest();
+        vaultV2.harvest();
 
-        assertLe(totalAssets + newAssets, vault.totalAssets());
-        assertEq(totalSupply, vault.totalSupply());
+        assertLe(totalAssets + newAssets, vaultV2.totalAssets());
+        assertEq(totalSupply, vaultV2.totalSupply());
 
-        if (_getVaultProxyAdmin() == vault.feeDistributor()) {
+        if (_getVaultV2ProxyAdmin() == vaultV2.feeDistributor()) {
             assertEq(
                 protocolFeeReceiverBalance +
                     protocolFeeReceiverShare +
                     feeDistributorShare +
                     feeDistributorSwapFeeShare,
-                USDBC.balanceOf(_getVaultProxyAdmin())
+                USDC.balanceOf(_getVaultV2ProxyAdmin())
             );
         } else {
             assertEq(
                 protocolFeeReceiverBalance + protocolFeeReceiverShare,
-                USDBC.balanceOf(_getVaultProxyAdmin())
+                USDC.balanceOf(_getVaultV2ProxyAdmin())
             );
             assertEq(
                 feeDistributorBalance +
                     feeDistributorShare +
                     feeDistributorSwapFeeShare,
-                USDBC.balanceOf(vault.feeDistributor())
+                USDC.balanceOf(vaultV2.feeDistributor())
             );
         }
     }
@@ -505,61 +505,61 @@ contract BrrUSDv2Test is Helper {
         address cometRewards = address(0xbeef);
         bool shouldHarvest = false;
 
-        assertTrue(msgSender != _getVaultProxyAdmin());
+        assertTrue(msgSender != _getVaultV2ProxyAdmin());
 
         vm.prank(msgSender);
         vm.expectRevert(ERC1967Factory.Unauthorized.selector);
 
-        vault.setCometRewards(cometRewards, shouldHarvest);
+        vaultV2.setCometRewards(cometRewards, shouldHarvest);
     }
 
     function testCannotSetCometRewardsInvalidCometRewards() external {
         address cometRewards = address(0);
         bool shouldHarvest = false;
 
-        vm.expectRevert(BrrUSD.InvalidCometRewards.selector);
+        vm.expectRevert(BrrUSDv2.InvalidCometRewards.selector);
 
-        vault.setCometRewards(cometRewards, shouldHarvest);
+        vaultV2.setCometRewards(cometRewards, shouldHarvest);
     }
 
     function testSetCometRewards() external {
         address cometRewards = address(0xbeef);
         bool shouldHarvest = false;
 
-        assertTrue(cometRewards != address(vault.cometRewards()));
+        assertTrue(cometRewards != address(vaultV2.cometRewards()));
 
-        vm.expectEmit(true, true, true, true, address(vault));
+        vm.expectEmit(true, true, true, true, address(vaultV2));
 
-        emit BrrUSD.SetCometRewards(cometRewards, shouldHarvest);
+        emit BrrUSDv2.SetCometRewards(cometRewards, shouldHarvest);
 
-        vault.setCometRewards(cometRewards, shouldHarvest);
+        vaultV2.setCometRewards(cometRewards, shouldHarvest);
 
-        assertEq(cometRewards, address(vault.cometRewards()));
+        assertEq(cometRewards, address(vaultV2.cometRewards()));
     }
 
     function testSetCometRewardsShouldHarvest() external {
         address cometRewards = address(0xbeef);
         bool shouldHarvest = true;
 
-        assertTrue(cometRewards != address(vault.cometRewards()));
+        assertTrue(cometRewards != address(vaultV2.cometRewards()));
 
         // Deposit and accrue enough time to ensure `harvest` is called (i.e. emits `Harvest` event).
-        vault.deposit(1_000e6, address(this), 1);
+        vaultV2.deposit(1_000e6, address(this), 1);
 
         skip(1 days);
 
         // Event members are unchecked, we just need to know that `harvest` was called.
-        vm.expectEmit(false, false, false, false, address(vault));
+        vm.expectEmit(false, false, false, false, address(vaultV2));
 
-        emit BrrUSD.Harvest(COMP, 0, 0, 0);
+        emit BrrUSDv2.Harvest(COMP, 0, 0, 0);
 
-        vm.expectEmit(true, true, true, true, address(vault));
+        vm.expectEmit(true, true, true, true, address(vaultV2));
 
-        emit BrrUSD.SetCometRewards(cometRewards, shouldHarvest);
+        emit BrrUSDv2.SetCometRewards(cometRewards, shouldHarvest);
 
-        vault.setCometRewards(cometRewards, shouldHarvest);
+        vaultV2.setCometRewards(cometRewards, shouldHarvest);
 
-        assertEq(cometRewards, address(vault.cometRewards()));
+        assertEq(cometRewards, address(vaultV2.cometRewards()));
     }
 
     function testSetCometRewardsFuzz(
@@ -568,28 +568,28 @@ contract BrrUSDv2Test is Helper {
     ) external {
         vm.assume(
             cometRewards != address(0) &&
-                cometRewards != address(vault.cometRewards())
+                cometRewards != address(vaultV2.cometRewards())
         );
 
-        assertTrue(cometRewards != address(vault.cometRewards()));
+        assertTrue(cometRewards != address(vaultV2.cometRewards()));
 
         if (shouldHarvest) {
-            vault.deposit(1_000e6, address(this), 1);
+            vaultV2.deposit(1_000e6, address(this), 1);
 
             skip(1 days);
 
-            vm.expectEmit(false, false, false, false, address(vault));
+            vm.expectEmit(false, false, false, false, address(vaultV2));
 
-            emit BrrUSD.Harvest(COMP, 0, 0, 0);
+            emit BrrUSDv2.Harvest(COMP, 0, 0, 0);
         }
 
-        vm.expectEmit(true, true, true, true, address(vault));
+        vm.expectEmit(true, true, true, true, address(vaultV2));
 
-        emit BrrUSD.SetCometRewards(cometRewards, shouldHarvest);
+        emit BrrUSDv2.SetCometRewards(cometRewards, shouldHarvest);
 
-        vault.setCometRewards(cometRewards, shouldHarvest);
+        vaultV2.setCometRewards(cometRewards, shouldHarvest);
 
-        assertEq(cometRewards, address(vault.cometRewards()));
+        assertEq(cometRewards, address(vaultV2.cometRewards()));
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -600,20 +600,20 @@ contract BrrUSDv2Test is Helper {
         address msgSender = address(0);
         address router = address(0xbeef);
 
-        assertTrue(msgSender != _getVaultProxyAdmin());
+        assertTrue(msgSender != _getVaultV2ProxyAdmin());
 
         vm.prank(msgSender);
         vm.expectRevert(ERC1967Factory.Unauthorized.selector);
 
-        vault.setRouter(router);
+        vaultV2.setRouter(router);
     }
 
     function testCannotSetRouterInvalidCometRewards() external {
         address router = address(0);
 
-        vm.expectRevert(BrrUSD.InvalidRouter.selector);
+        vm.expectRevert(BrrUSDv2.InvalidRouter.selector);
 
-        vault.setRouter(router);
+        vaultV2.setRouter(router);
     }
 
     function testSetRouter() external {
@@ -624,24 +624,24 @@ contract BrrUSDv2Test is Helper {
         address router = address(0xbeef);
 
         assertTrue(router != ROUTER);
-        assertEq(0, rewardToken.allowance(address(vault), router));
+        assertEq(0, rewardToken.allowance(address(vaultV2), router));
         assertEq(
             type(uint256).max,
-            rewardToken.allowance(address(vault), ROUTER)
+            rewardToken.allowance(address(vaultV2), ROUTER)
         );
 
-        vm.expectEmit(true, true, true, true, address(vault));
+        vm.expectEmit(true, true, true, true, address(vaultV2));
 
-        emit BrrUSD.SetRouter(router);
+        emit BrrUSDv2.SetRouter(router);
 
-        vault.setRouter(router);
+        vaultV2.setRouter(router);
 
-        assertEq(router, address(vault.router()));
+        assertEq(router, address(vaultV2.router()));
         assertEq(
             type(uint256).max,
-            rewardToken.allowance(address(vault), router)
+            rewardToken.allowance(address(vaultV2), router)
         );
-        assertEq(0, rewardToken.allowance(address(vault), ROUTER));
+        assertEq(0, rewardToken.allowance(address(vaultV2), ROUTER));
     }
 
     function testSetRouterFuzz(address router) external {
@@ -652,18 +652,18 @@ contract BrrUSDv2Test is Helper {
         ).rewardConfig(COMET_USDC);
         ERC20 rewardToken = ERC20(rewardConfig.token);
 
-        assertEq(0, rewardToken.allowance(address(vault), router));
+        assertEq(0, rewardToken.allowance(address(vaultV2), router));
 
-        vm.expectEmit(true, true, true, true, address(vault));
+        vm.expectEmit(true, true, true, true, address(vaultV2));
 
-        emit BrrUSD.SetRouter(router);
+        emit BrrUSDv2.SetRouter(router);
 
-        vault.setRouter(router);
+        vaultV2.setRouter(router);
 
-        assertEq(router, address(vault.router()));
+        assertEq(router, address(vaultV2.router()));
         assertEq(
             type(uint256).max,
-            rewardToken.allowance(address(vault), router)
+            rewardToken.allowance(address(vaultV2), router)
         );
     }
 
@@ -675,54 +675,54 @@ contract BrrUSDv2Test is Helper {
         address msgSender = address(0);
         uint256 rewardFee = 0;
 
-        assertTrue(msgSender != _getVaultProxyAdmin());
+        assertTrue(msgSender != _getVaultV2ProxyAdmin());
 
         vm.prank(msgSender);
         vm.expectRevert(ERC1967Factory.Unauthorized.selector);
 
-        vault.setRewardFee(rewardFee);
+        vaultV2.setRewardFee(rewardFee);
     }
 
     function testCannotSetRewardFeeInvalidRewardFee() external {
         uint256 rewardFee = FEE_BASE + 1;
 
-        vm.expectRevert(BrrUSD.InvalidRewardFee.selector);
+        vm.expectRevert(BrrUSDv2.InvalidRewardFee.selector);
 
-        vault.setRewardFee(rewardFee);
+        vaultV2.setRewardFee(rewardFee);
     }
 
     function testCannotSetRewardFeeInvalidRewardFeeFuzz(
         uint256 rewardFee
     ) external {
         vm.assume(rewardFee > FEE_BASE);
-        vm.expectRevert(BrrUSD.InvalidRewardFee.selector);
+        vm.expectRevert(BrrUSDv2.InvalidRewardFee.selector);
 
-        vault.setRewardFee(rewardFee);
+        vaultV2.setRewardFee(rewardFee);
     }
 
     function testSetRewardFee() external {
         uint256 rewardFee = 0;
 
-        assertTrue(rewardFee != vault.rewardFee());
+        assertTrue(rewardFee != vaultV2.rewardFee());
 
-        vm.expectEmit(true, true, true, true, address(vault));
+        vm.expectEmit(true, true, true, true, address(vaultV2));
 
-        emit BrrUSD.SetRewardFee(rewardFee);
+        emit BrrUSDv2.SetRewardFee(rewardFee);
 
-        vault.setRewardFee(rewardFee);
+        vaultV2.setRewardFee(rewardFee);
 
-        assertEq(rewardFee, vault.rewardFee());
+        assertEq(rewardFee, vaultV2.rewardFee());
     }
 
     function testSetRewardFeeFuzz(uint16 rewardFee) external {
         vm.assume(rewardFee <= FEE_BASE);
-        vm.expectEmit(true, true, true, true, address(vault));
+        vm.expectEmit(true, true, true, true, address(vaultV2));
 
-        emit BrrUSD.SetRewardFee(rewardFee);
+        emit BrrUSDv2.SetRewardFee(rewardFee);
 
-        vault.setRewardFee(rewardFee);
+        vaultV2.setRewardFee(rewardFee);
 
-        assertEq(rewardFee, vault.rewardFee());
+        assertEq(rewardFee, vaultV2.rewardFee());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -733,40 +733,40 @@ contract BrrUSDv2Test is Helper {
         address msgSender = address(0);
         address protocolFeeReceiver = address(0xbeef);
 
-        assertTrue(msgSender != _getVaultProxyAdmin());
+        assertTrue(msgSender != _getVaultV2ProxyAdmin());
 
         vm.prank(msgSender);
         vm.expectRevert(ERC1967Factory.Unauthorized.selector);
 
-        vault.setProtocolFeeReceiver(protocolFeeReceiver);
+        vaultV2.setProtocolFeeReceiver(protocolFeeReceiver);
     }
 
     function testCannotSetProtocolFeeReceiverInvalidProtocolFeeReceiver()
         external
     {
-        address msgSender = _getVaultProxyAdmin();
+        address msgSender = _getVaultV2ProxyAdmin();
         address protocolFeeReceiver = address(0);
 
         vm.prank(msgSender);
-        vm.expectRevert(BrrUSD.InvalidProtocolFeeReceiver.selector);
+        vm.expectRevert(BrrUSDv2.InvalidProtocolFeeReceiver.selector);
 
-        vault.setProtocolFeeReceiver(protocolFeeReceiver);
+        vaultV2.setProtocolFeeReceiver(protocolFeeReceiver);
     }
 
     function testSetProtocolFeeReceiver() external {
-        address msgSender = _getVaultProxyAdmin();
+        address msgSender = _getVaultV2ProxyAdmin();
         address protocolFeeReceiver = address(0xbeef);
 
-        assertTrue(protocolFeeReceiver != vault.protocolFeeReceiver());
+        assertTrue(protocolFeeReceiver != vaultV2.protocolFeeReceiver());
 
         vm.prank(msgSender);
-        vm.expectEmit(true, true, true, true, address(vault));
+        vm.expectEmit(true, true, true, true, address(vaultV2));
 
-        emit BrrUSD.SetProtocolFeeReceiver(protocolFeeReceiver);
+        emit BrrUSDv2.SetProtocolFeeReceiver(protocolFeeReceiver);
 
-        vault.setProtocolFeeReceiver(protocolFeeReceiver);
+        vaultV2.setProtocolFeeReceiver(protocolFeeReceiver);
 
-        assertEq(protocolFeeReceiver, vault.protocolFeeReceiver());
+        assertEq(protocolFeeReceiver, vaultV2.protocolFeeReceiver());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -777,34 +777,34 @@ contract BrrUSDv2Test is Helper {
         address msgSender = address(0);
         address feeDistributor = address(0xbeef);
 
-        assertTrue(msgSender != _getVaultProxyAdmin());
+        assertTrue(msgSender != _getVaultV2ProxyAdmin());
 
         vm.prank(msgSender);
         vm.expectRevert(ERC1967Factory.Unauthorized.selector);
 
-        vault.setFeeDistributor(feeDistributor);
+        vaultV2.setFeeDistributor(feeDistributor);
     }
 
     function testCannotSetFeeDistributorInvalidFeeDistributor() external {
         address feeDistributor = address(0);
 
-        vm.expectRevert(BrrUSD.InvalidFeeDistributor.selector);
+        vm.expectRevert(BrrUSDv2.InvalidFeeDistributor.selector);
 
-        vault.setFeeDistributor(feeDistributor);
+        vaultV2.setFeeDistributor(feeDistributor);
     }
 
     function testSetFeeDistributor() external {
         address feeDistributor = address(0xbeef);
 
-        assertTrue(feeDistributor != vault.feeDistributor());
+        assertTrue(feeDistributor != vaultV2.feeDistributor());
 
-        vm.expectEmit(true, true, true, true, address(vault));
+        vm.expectEmit(true, true, true, true, address(vaultV2));
 
-        emit BrrUSD.SetFeeDistributor(feeDistributor);
+        emit BrrUSDv2.SetFeeDistributor(feeDistributor);
 
-        vault.setFeeDistributor(feeDistributor);
+        vaultV2.setFeeDistributor(feeDistributor);
 
-        assertEq(feeDistributor, vault.feeDistributor());
+        assertEq(feeDistributor, vaultV2.feeDistributor());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -812,38 +812,38 @@ contract BrrUSDv2Test is Helper {
     //////////////////////////////////////////////////////////////*/
 
     function testCannotMaxMintRemovedERC4626Method() external {
-        vm.expectRevert(BrrUSD.RemovedERC4626Method.selector);
+        vm.expectRevert(BrrUSDv2.RemovedERC4626Method.selector);
 
-        vault.maxMint(address(0));
+        vaultV2.maxMint(address(0));
     }
 
     function testCannotMaxWithdrawRemovedERC4626Method() external {
-        vm.expectRevert(BrrUSD.RemovedERC4626Method.selector);
+        vm.expectRevert(BrrUSDv2.RemovedERC4626Method.selector);
 
-        vault.maxWithdraw(address(0));
+        vaultV2.maxWithdraw(address(0));
     }
 
     function testCannotPreviewMintRemovedERC4626Method() external {
-        vm.expectRevert(BrrUSD.RemovedERC4626Method.selector);
+        vm.expectRevert(BrrUSDv2.RemovedERC4626Method.selector);
 
-        vault.previewMint(0);
+        vaultV2.previewMint(0);
     }
 
     function testCannotPreviewWithdrawRemovedERC4626Method() external {
-        vm.expectRevert(BrrUSD.RemovedERC4626Method.selector);
+        vm.expectRevert(BrrUSDv2.RemovedERC4626Method.selector);
 
-        vault.previewWithdraw(0);
+        vaultV2.previewWithdraw(0);
     }
 
     function testCannotMintRemovedERC4626Method() external {
-        vm.expectRevert(BrrUSD.RemovedERC4626Method.selector);
+        vm.expectRevert(BrrUSDv2.RemovedERC4626Method.selector);
 
-        vault.mint(0, address(0));
+        vaultV2.mint(0, address(0));
     }
 
     function testCannotWithdrawRemovedERC4626Method() external {
-        vm.expectRevert(BrrUSD.RemovedERC4626Method.selector);
+        vm.expectRevert(BrrUSDv2.RemovedERC4626Method.selector);
 
-        vault.withdraw(0, address(0), address(0));
+        vaultV2.withdraw(0, address(0), address(0));
     }
 }
