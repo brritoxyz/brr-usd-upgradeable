@@ -15,18 +15,18 @@ import {IRouter} from "src/interfaces/IRouter.sol";
 /// @title Brrito brrUSD.
 /// @author kp (kphed.eth).
 /// @notice A yield-bearing USD derivative built on Compound III.
-contract BrrUSD is UUPSUpgradeable, Initializable, ERC4626 {
+contract BrrUSDv2 is UUPSUpgradeable, Initializable, ERC4626 {
     using SafeTransferLib for address;
     using FixedPointMathLib for uint256;
 
     string private constant _NAME = "Brrito USD";
-    string private constant _SYMBOL = "brrUSD";
+    string private constant _SYMBOL = "brrUSDv2";
     address private constant _ASSET =
-        0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA;
+        0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913;
     uint8 private constant _ASSET_DECIMALS = 6;
     uint256 private constant _FEE_BASE = 10_000;
     address private constant _COMET =
-        0x9c4ec768c28520B50860ea7a15bd7213a9fF58bf;
+        0xb125E6687d4313864e53df431d5425969c15Eb2F;
     ERC1967Factory private constant _ERC1967_FACTORY =
         ERC1967Factory(0x0000000000006396FF2a80c067f99B3d2Ab4Df24);
 
@@ -38,10 +38,10 @@ contract BrrUSD is UUPSUpgradeable, Initializable, ERC4626 {
     // The default reward fee is 0% and can be increased up to 100% (only for specific use cases).
     uint256 public rewardFee;
 
-    // Receives the protocol's share of reward fees.
+    // If fees are non-zero, receives the protocol's share of reward fees.
     address public protocolFeeReceiver;
 
-    // Receives and distributes the stakedBRR token holder's share of reward fees.
+    // If fees are non-zero, receives and distributes the stakedBRR token holder's share of reward fees.
     address public feeDistributor;
 
     event Harvest(
