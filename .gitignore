@@ -12,6 +12,14 @@ broadcast/BrrUSD.s.sol/8453/*
 broadcast/BrrUSDHelper.s.sol/dry-run
 broadcast/BrrUSDHelper.s.sol/8453/*
 !broadcast/BrrUSDHelper.s.sol/8453/run-latest.json
+!broadcast/BrrUSDv2.s.sol/
+broadcast/BrrUSDv2.s.sol/dry-run
+broadcast/BrrUSDv2.s.sol/8453/*
+!broadcast/BrrUSDv2.s.sol/8453/run-latest.json
+!broadcast/BrrUSDv2Helper.s.sol/
+broadcast/BrrUSDv2Helper.s.sol/dry-run
+broadcast/BrrUSDv2Helper.s.sol/8453/*
+!broadcast/BrrUSDv2Helper.s.sol/8453/run-latest.json
 
 # Dotenv file
 .env
