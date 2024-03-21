@@ -145,7 +145,7 @@ contract BrrUSDHelperTest is Test, Helper {
 
         // The redeem helper should not maintain balances for any of the tokens it handles.
         assertEq(0, vault.balanceOf(address(redeemHelper)));
-        assertEq(0, COMET.balanceOf(address(redeemHelper)));
+        assertEq(0, COMET_USDBC.balanceOf(address(redeemHelper)));
         assertEq(0, USDBC.balanceOf(address(redeemHelper)));
     }
 
@@ -169,7 +169,7 @@ contract BrrUSDHelperTest is Test, Helper {
         assertLe(minAssets, assetsReceived);
 
         assertEq(0, vault.balanceOf(address(redeemHelper)));
-        assertEq(0, COMET.balanceOf(address(redeemHelper)));
+        assertEq(0, COMET_USDBC.balanceOf(address(redeemHelper)));
         assertEq(0, USDBC.balanceOf(address(redeemHelper)));
     }
 
@@ -215,7 +215,7 @@ contract BrrUSDHelperTest is Test, Helper {
 
         assertLe(minAssets, assetsReceived);
         assertEq(0, vault.balanceOf(address(redeemHelper)));
-        assertEq(0, COMET.balanceOf(address(redeemHelper)));
+        assertEq(0, COMET_USDBC.balanceOf(address(redeemHelper)));
         assertEq(0, USDC.balanceOf(address(redeemHelper)));
     }
 
@@ -243,7 +243,7 @@ contract BrrUSDHelperTest is Test, Helper {
         assertLe(minAssets, assetsReceived);
 
         assertEq(0, vault.balanceOf(address(redeemHelper)));
-        assertEq(0, COMET.balanceOf(address(redeemHelper)));
+        assertEq(0, COMET_USDBC.balanceOf(address(redeemHelper)));
         assertEq(0, USDC.balanceOf(address(redeemHelper)));
     }
 }

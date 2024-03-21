@@ -32,12 +32,12 @@ contract BrrUSDv2Test is Helper {
     ];
 
     function _getAsset(uint256 amount) internal returns (uint256 balance) {
-        balance = COMET.balanceOf(address(this));
+        balance = COMET_USDC.balanceOf(address(this));
 
         deal(USDBC, address(this), amount);
-        IComet(COMET).supply(USDBC, amount);
+        IComet(COMET_USDC).supply(USDBC, amount);
 
-        balance = COMET.balanceOf(address(this)) - balance;
+        balance = COMET_USDC.balanceOf(address(this)) - balance;
     }
 
     function _calculateFees(
@@ -110,7 +110,7 @@ contract BrrUSDv2Test is Helper {
         // Comet must have max allowance for the purposes of supplying USDC for the cToken.
         assertEq(
             type(uint256).max,
-            ERC20(USDBC).allowance(address(vault), COMET)
+            ERC20(USDBC).allowance(address(vault), COMET_USDC)
         );
 
         assertEq(
@@ -140,7 +140,7 @@ contract BrrUSDv2Test is Helper {
     //////////////////////////////////////////////////////////////*/
 
     function testAsset() external {
-        assertEq(COMET, vault.asset());
+        assertEq(COMET_USDC, vault.asset());
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -246,7 +246,7 @@ contract BrrUSDv2Test is Helper {
         uint256 assets = type(uint256).max;
         address to = address(this);
 
-        assertLt(COMET.balanceOf(address(this)), assets);
+        assertLt(COMET_USDC.balanceOf(address(this)), assets);
 
         vm.expectRevert(BrrUSD.InsufficientAssetBalance.selector);
 
@@ -260,7 +260,7 @@ contract BrrUSDv2Test is Helper {
 
         address to = address(this);
 
-        assertLt(COMET.balanceOf(address(this)), assets);
+        assertLt(COMET_USDC.balanceOf(address(this)), assets);
 
         vm.expectRevert(BrrUSD.InsufficientAssetBalance.selector);
 
@@ -364,15 +364,15 @@ contract BrrUSDv2Test is Helper {
         _getAsset(assets);
 
         // Reassign `assets` since Comet rounds down 1.
-        assets = COMET.balanceOf(address(this));
+        assets = COMET_USDC.balanceOf(address(this));
 
         vault.deposit(assets, address(this));
 
         skip(accrualTime);
 
-        IComet(COMET).accrueAccount(address(vault));
+        IComet(COMET_USDC).accrueAccount(address(vault));
 
-        IComet.UserBasic memory userBasic = IComet(COMET).userBasic(
+        IComet.UserBasic memory userBasic = IComet(COMET_USDC).userBasic(
             address(vault)
         );
         uint256 rewards = userBasic.baseTrackingAccrued * 1e12;
@@ -427,15 +427,15 @@ contract BrrUSDv2Test is Helper {
 
         _getAsset(assets);
 
-        assets = uint40(COMET.balanceOf(address(this)));
+        assets = uint40(COMET_USDC.balanceOf(address(this)));
 
         vault.deposit(assets, address(this));
 
         skip(accrualTime);
 
-        IComet(COMET).accrueAccount(address(vault));
+        IComet(COMET_USDC).accrueAccount(address(vault));
 
-        IComet.UserBasic memory userBasic = IComet(COMET).userBasic(
+        IComet.UserBasic memory userBasic = IComet(COMET_USDC).userBasic(
             address(vault)
         );
         uint256 rewards = uint256(userBasic.baseTrackingAccrued) * 1e12;
@@ -619,7 +619,7 @@ contract BrrUSDv2Test is Helper {
     function testSetRouter() external {
         ICometRewards.RewardConfig memory rewardConfig = ICometRewards(
             COMET_REWARDS
-        ).rewardConfig(COMET);
+        ).rewardConfig(COMET_USDC);
         ERC20 rewardToken = ERC20(rewardConfig.token);
         address router = address(0xbeef);
 
@@ -649,7 +649,7 @@ contract BrrUSDv2Test is Helper {
 
         ICometRewards.RewardConfig memory rewardConfig = ICometRewards(
             COMET_REWARDS
-        ).rewardConfig(COMET);
+        ).rewardConfig(COMET_USDC);
         ERC20 rewardToken = ERC20(rewardConfig.token);
 
         assertEq(0, rewardToken.allowance(address(vault), router));
