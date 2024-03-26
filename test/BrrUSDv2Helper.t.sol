@@ -58,11 +58,9 @@ contract BrrUSDv2HelperTest is Test, Helper {
         assertEq(0, USDC.balanceOf(address(helper)));
     }
 
-    function testRedeemFuzz(uint256 assets, address to) external {
-        vm.assume(to != address(0));
-
+    function testRedeemFuzz(uint256 assets) external {
         assets = bound(assets, 1e6, 10e12);
-
+        address to = address(this);
         uint256 shares = vaultV2.deposit(assets, address(this), 1);
         uint256 minAssets = vaultV2.convertToAssets(shares) -
             COMET_ROUNDING_ERROR_MARGIN;

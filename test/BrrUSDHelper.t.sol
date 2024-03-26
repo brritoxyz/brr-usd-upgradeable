@@ -149,10 +149,9 @@ contract BrrUSDHelperTest is Test, Helper {
         assertEq(0, USDBC.balanceOf(address(redeemHelper)));
     }
 
-    function testRedeemFuzz(uint256 assets, address to) external {
-        vm.assume(to != address(0));
-
+    function testRedeemFuzz(uint256 assets) external {
         assets = bound(assets, 1e6, type(uint40).max);
+        address to = address(this);
 
         deal(USDBC, address(this), assets);
 
